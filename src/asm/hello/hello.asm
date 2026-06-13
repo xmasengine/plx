@@ -1,28 +1,14 @@
-// ==============================================================
-//  WLA-DX banking setup
-// ==============================================================
-// .memorymap
-// defaultslot 0
-// slotsize 0x8000
-// slot 0 0x0000
-// .endme
-// .rombankmap
-// bankstotal 1
-// banksize 0x8000
-// banks 1
-// .endro
 
-// ==============================================================
-//  SDSC tag and SMS rom header
-// ==============================================================
-// .sdsctag 1.2,"Hello World!","SMS programming tutorial program","Maxim"
+// Banking setup
 
-// .bank 0 slot 0
 
+banksize 0x4000
+bankat 0
+bank 0
+
+
+// Boot section
 org 0x0000
-// ==============================================================
-//  Boot section
-// ==============================================================
     di              //  disable interrupts
     im 1            //  Interrupt mode 1
     jp main         //  jump to main program
@@ -31,31 +17,24 @@ org 0x0000
 org 0x0038
 	reti // do nothing for now
 
-org 0x0066
-// ==============================================================
+
 //  Pause button handler
-// ==============================================================
+org 0x0066
     //  Do nothing
     retn
 
-// ==============================================================
-//  Main program
-// ==============================================================
+// Main program
 main:
     ld sp, 0xdff0
 
-    // ==============================================================
-    //  Set up VDP registers
-    // ==============================================================
+    // Set up VDP registers
     ld hl,VdpData
     ld b,VdpDataEnd-VdpData
     ld c,0xbf
     otir
 
-    // ==============================================================
-    //  Clear VRAM
-    // ==============================================================
-    //  1. Set VRAM write address to 0 by outputting 0x4000 ORed with 0x0000
+    // Clear VRAM
+    // 1. Set VRAM write address to 0 by outputting 0x4000 ORed with 0x0000
     ld a,0x00
     out (0xbf),a
     ld a,0x40
@@ -70,26 +49,22 @@ main:
         or c
         jp nz,ClearVRAMLoop
 
-    // ==============================================================
-    //  Load palette
-    // ==============================================================
-    //  1. Set VRAM write address to CRAM (palette) address 0 (for palette index 0)
-    //  by outputting 0xc000 ORed with 0x0000
+    // Load palette
+    // 1. Set VRAM write address to CRAM (palette) address 0 (for palette index 0)
+    // by outputting 0xc000 ORed with 0x0000
     ld a,0x00
     out (0xbf),a
     ld a,0xc0
     out (0xbf),a
-    //  2. Output colour data
+    // 2. Output colour data
     ld hl,PaletteData
     ld b,PaletteDataEnd-PaletteData
     ld c,0xbe
     otir
 
-    // ==============================================================
-    //  Load tiles (font)
-    // ==============================================================
-    //  1. Set VRAM write address to tile index 0
-    //  by outputting 0x4000 ORed with 0x0000
+    // Load tiles (font)
+    // 1. Set VRAM write address to tile index 0
+    // by outputting 0x4000 ORed with 0x0000
     ld a,0x00
     out (0xbf),a
     ld a,0x40
@@ -108,11 +83,9 @@ main:
         or c
         jp nz,WriteTilesLoop
 
-    // ==============================================================
-    //  Write text to name table
-    // ==============================================================
-    //  1. Set VRAM write address to name table index 0
-    //  by outputting 0x4000 ORed with 0x3800+0
+    // Write text to name table
+    // 1. Set VRAM write address to name table index 0
+    // by outputting 0x4000 ORed with 0x3800+0
     ld a,0x00
     out (0xbf),a
     ld a,0x38|0x40

@@ -149,8 +149,6 @@ func (asm *Assembler) RAM() []uint8 {
 // AssembleFile reads the named file, and assembles it as z80
 // instructions.
 func (asm *Assembler) AssembleFile(filename string) error {
-	println("AssembleFile", filename)
-
 	pc := asm.pc
 	target := asm.target
 	defer func() {
