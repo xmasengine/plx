@@ -7,6 +7,8 @@ type Operand int
 
 const (
 	OperandNone Operand = iota
+	OperandByte
+	OperandWord
 	OperandInt
 	OperandIdent
 	OperandString
@@ -16,6 +18,10 @@ func (o Operand) String() string {
 	switch o {
 	case OperandNone:
 		return "None"
+	case OperandByte:
+		return "Byte"
+	case OperandWord:
+		return "Word"
 	case OperandInt:
 		return "Int"
 	case OperandIdent:
@@ -29,17 +35,17 @@ func (o Operand) String() string {
 
 const OperandShift = 8
 
-type Instruction int
+type Operation int
 
 const (
-	NOOP Instruction = 0
-	NAME Instruction = 1 | Instruction(OperandIdent<<OperandShift)
-	DATA Instruction = 2 | Instruction(OperandString<<OperandShift)
-	IASM Instruction = 100 | Instruction(OperandString<<OperandShift)
+	NOOP Operation = 0
+	NAME Operation = 1 | Operation(OperandIdent<<OperandShift)
+	DATA Operation = 2 | Operation(OperandString<<OperandShift)
+	IASM Operation = 100 | Operation(OperandString<<OperandShift)
 )
 
-func (i Instruction) String() string {
-	switch i {
+func (o Operation) String() string {
+	switch o {
 	case NOOP:
 		return "NOOP"
 	case NAME:
@@ -53,27 +59,40 @@ func (i Instruction) String() string {
 	}
 }
 
-func (i *Instruction) MarshalText() ([]byte, error) {
-	s := i.String()
+func (o Operation) MarshalText() ([]byte, error) {
+	s := o.String()
 	if s == "" {
-		return nil, errors.New("unknown instruction")
+		return nil, errors.New("unknown Operation")
 	}
 	return []byte(s), nil
 }
 
-func (i *Instruction) UnmarshalText(text []byte) error {
+func (o *Operation) UnmarshalText(text []byte) error {
 	s := string(text)
 	switch s {
 	case "NOOP":
-		*i = NOOP
+		*o = NOOP
 	case "NAME":
-		*i = NAME
+		*o = NAME
 	case "DATA":
-		*i = DATA
+		*o = DATA
 	case "IASM":
-		*i = IASM
+		*o = IASM
 	default:
 		break
 	}
-	return errors.New("unknown instruction")
+	return errors.New("unknown Operation")
 }
+
+func (o Operation) Operand() Operand {
+	return Operand(o >> OperandShift)
+}
+
+type Instruction struct {
+	Operation        // Operation
+	Text      string // filled in for Ident or String
+	Number    int    // filled in for Byte, Word or Int
+}
+
+// Program is a list of instructions
+type Program []Instruction
