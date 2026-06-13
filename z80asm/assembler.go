@@ -149,6 +149,8 @@ func (asm *Assembler) RAM() []uint8 {
 // AssembleFile reads the named file, and assembles it as z80
 // instructions.
 func (asm *Assembler) AssembleFile(filename string) error {
+	println("AssembleFile", filename)
+
 	pc := asm.pc
 	target := asm.target
 	defer func() {
@@ -185,11 +187,6 @@ func (asm *Assembler) popScanner() (bool, error) {
 }
 
 func (asm *Assembler) pushScanner(filename string) error {
-	for _, f := range asm.openFiles {
-		if f == filename {
-			return asm.scanErrorf("recursive include of file %q", filename)
-		}
-	}
 	f, err := asm.opener(filename)
 	if err != nil {
 		return fmt.Errorf("failed to assemble %q: %v", filename, err)
@@ -642,6 +639,13 @@ func (commandInclude) W(asm *Assembler) error {
 	if err != nil {
 		return asm.scanErrorf("expected \"filename.asm\" to follow include, got: %v", args[0])
 	}
+
+	for _, open := range asm.openFiles {
+		if open == name {
+			return asm.scanErrorf("recursive include of file %q", open)
+		}
+	}
+
 	return asm.pushScanner(name)
 }
 

@@ -54,6 +54,10 @@ type Runner interface {
 	Run(args ...string) error
 }
 
+type Preparer interface {
+	Prepare(c *Command) error
+}
+
 type Command struct {
 	*flag.FlagSet // we use Flagset.Name() as the name of the command also
 	Runner        Runner
@@ -76,7 +80,7 @@ func NewCommand(name string, runner Runner) *Command {
 
 type CLI struct {
 	*flag.FlagSet
-	Commands []Command
+	Commands []*Command
 	showHelp bool
 	Default  *Command
 }
@@ -91,7 +95,7 @@ func (c *CLI) Run(args ...string) error {
 	}
 	for _, com := range c.Commands {
 		if com.Name() == args[1] {
-			return com.Run(args...)
+			return com.Run(args[2:]...)
 		}
 	}
 	return fmt.Errorf("unknown command %s", args[1])
@@ -126,7 +130,7 @@ func (h *help) Run(args ...string) error {
 
 func (c *CLI) Command(name string, runner Runner) *Command {
 	res := NewCommand(name, runner)
-	c.Commands = append(c.Commands, *res)
+	c.Commands = append(c.Commands, res)
 	return res
 }
 
@@ -138,8 +142,21 @@ func New() *CLI {
 	return res
 }
 
+func (c *CLI) prepareAll() error {
+	for _, com := range c.Commands {
+		if prepare, ok := com.Runner.(Preparer); ok {
+			err := prepare.Prepare(com)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // Start parses the command line arguments and runs the CLI.
 func (c *CLI) Start() error {
+	c.prepareAll()
 	err := c.FlagSet.Parse(os.Args)
 	if err != nil {
 		return err
