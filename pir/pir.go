@@ -79,12 +79,55 @@ const (
 	IASM
 )
 
+/*
+ */
+
 func (o Operation) String() string {
 	switch o {
 	case NOOP:
 		return "NOOP"
+	case INCB:
+		return "INCB"
+	case INCW:
+		return "INCW"
+	case DECB:
+		return "DECB"
+	case DECW:
+		return "DECW"
+	case POPB:
+		return "POPB"
+	case POPW:
+		return "POPW"
+	case DUPB:
+		return "DUPB"
+	case DUPW:
+		return "DUPW"
+	case PSHB:
+		return "PSHB"
+	case PSHW:
+		return "PSHW"
+	case OUTB:
+		return "OUTB"
+	case OUTW:
+		return "OUTW"
+	case OUTA:
+		return "OUTA"
+	case INPB:
+		return "INPB"
+	case INPW:
+		return "INPW"
 	case NAME:
 		return "NAME"
+	case PSHT:
+		return "PSHT"
+	case LABL:
+		return "LABL"
+	case JUMP:
+		return "JUMP"
+	case JPIF:
+		return "JPIF"
+	case COND:
+		return "COND"
 	case DATS:
 		return "DATS"
 	case IASM:
@@ -107,14 +150,52 @@ func (o *Operation) UnmarshalText(text []byte) error {
 	switch s {
 	case "NOOP":
 		*o = NOOP
+	case "INCB":
+		*o = INCB
+	case "INCW":
+		*o = INCW
+	case "DECB":
+		*o = DECB
+	case "DECW":
+		*o = DECW
+	case "POPB":
+		*o = POPB
+	case "POPW":
+		*o = POPW
+	case "DUPB":
+		*o = DUPB
+	case "DUPW":
+		*o = DUPW
+	case "PSHB":
+		*o = PSHB
+	case "PSHW":
+		*o = PSHW
+	case "OUTB":
+		*o = OUTB
+	case "OUTW":
+		*o = OUTW
+	case "OUTA":
+		*o = OUTA
+	case "INPB":
+		*o = INPB
+	case "INPW":
+		*o = INPW
 	case "NAME":
 		*o = NAME
+	case "PSHT":
+		*o = PSHT
+	case "LABL":
+		*o = LABL
+	case "JUMP":
+		*o = JUMP
+	case "JPIF":
+		*o = JPIF
+	case "COND":
+		*o = COND
 	case "DATS":
 		*o = DATS
 	case "IASM":
 		*o = IASM
-	default:
-		break
 	}
 	return errors.New("unknown Operation")
 }
@@ -157,9 +238,13 @@ func (o Operation) Operand() Operand {
 // This means some instructions have to look back at the previous
 // instruction to get all their operands if one is not enough.
 type Instruction struct {
-	Operation        // Operation
-	Text      string // filled in for Ident or String
-	Number    int    // filled in for Byte, Word or Int
+	Operation // Operation
+
+	Byte  uint8  // Filled in for OperandByte
+	Word  uint16 // Filled in for OperandWord
+	Int   int    // Filled in for OperandInt
+	Str   string // Filled in for OperandString
+	Ident string // Filled in for OperandIdent
 }
 
 // Program is a list of instructions

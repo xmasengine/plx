@@ -7,6 +7,7 @@ import "errors"
 import (
 	"github.com/xmasengine/plx/arch"
 	"github.com/xmasengine/plx/cli"
+	"github.com/xmasengine/plx/pir"
 	"github.com/xmasengine/plx/plat"
 	"github.com/xmasengine/plx/z80asm"
 )
@@ -55,11 +56,37 @@ func (a *asm) Run(args ...string) error {
 	return errors.New("TODO: architecture not supported yet")
 }
 
+type pirc struct {
+	cli.Command
+	output string
+	common *common
+}
+
+func (p *pirc) Prepare(c *cli.Command) error {
+	c.StringVar(&p.output, "o", "", "pir output file name")
+	return nil
+}
+
+func (p *pirc) Run(args ...string) error {
+	println("pir Run")
+
+	if p.output == "" {
+		return errors.New("please specify pir output file")
+	}
+	if len(args) < 1 {
+		return errors.New("please specify pir source files")
+	}
+
+	return pir.ParseFiles(p.output, args...)
+}
+
 func main() {
 	c := &common{CLI: cli.New()}
 	c.registerFlags()
 	a := &asm{common: c}
+	p := &pirc{common: c}
 	c.CLI.Command("asm", a)
+	c.CLI.Command("pir", p)
 	err := c.CLI.Start()
 	cli.ExitIfErr("", err)
 }

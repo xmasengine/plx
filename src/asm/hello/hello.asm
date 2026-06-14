@@ -25,6 +25,7 @@ org 0x0066
 
 // Main program
 main:
+	// Set up stack.
     ld sp, 0xdff0
 
     // Set up VDP registers
