@@ -1,4 +1,8 @@
-NOOP
+// comment
+NOOP // inline comment
+/* long
+comment */
+
 INCB
 INCW
 DECB

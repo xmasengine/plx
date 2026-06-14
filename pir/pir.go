@@ -79,8 +79,11 @@ const (
 	IASM
 )
 
-/*
- */
+// This is only used by the parser to skip empty lines.
+const SKIP Operation = -1
+
+// This is only used by the parser to indicate the end of file.
+const DONE Operation = -2
 
 func (o Operation) String() string {
 	switch o {
@@ -218,18 +221,54 @@ const (
 )
 
 func (o Operation) Operand() Operand {
-	switch {
-	case o >= firstNoOp && o <= lastNoOp:
+	switch o {
+	case NOOP:
 		return OperandNone
-	case o >= firstByteOp && o <= lastByteOp:
+	case INCB:
+		return OperandNone
+	case INCW:
+		return OperandNone
+	case DECB:
+		return OperandNone
+	case DECW:
+		return OperandNone
+	case POPB:
+		return OperandNone
+	case POPW:
+		return OperandNone
+	case DUPB:
+		return OperandNone
+	case DUPW:
+		return OperandNone
+	case PSHB:
 		return OperandByte
-	case o >= firstWordOp && o <= lastWordOp:
+	case PSHW:
 		return OperandWord
-	case o >= firstIntOp && o <= lastIntOp:
+	case OUTB:
+		return OperandInt
+	case OUTW:
+		return OperandInt
+	case OUTA:
+		return OperandInt
+	case INPB:
+		return OperandInt
+	case INPW:
+		return OperandInt
+	case NAME:
 		return OperandIdent
-	case o >= firstIdentOp && o <= lastIdentOp:
+	case PSHT:
 		return OperandIdent
-	case o >= firstStringOp && o <= lastStringOp:
+	case LABL:
+		return OperandIdent
+	case JUMP:
+		return OperandIdent
+	case JPIF:
+		return OperandIdent
+	case COND:
+		return OperandIdent
+	case DATS:
+		return OperandString
+	case IASM:
 		return OperandString
 	default:
 		return OperandNone

@@ -35,8 +35,6 @@ func (a *asm) Prepare(c *cli.Command) error {
 }
 
 func (a *asm) Run(args ...string) error {
-	println("asm Run")
-
 	if a.output == "" {
 		return errors.New("please specify assembler output file")
 	}
@@ -68,8 +66,6 @@ func (p *pirc) Prepare(c *cli.Command) error {
 }
 
 func (p *pirc) Run(args ...string) error {
-	println("pir Run")
-
 	if p.output == "" {
 		return errors.New("please specify pir output file")
 	}

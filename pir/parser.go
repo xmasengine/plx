@@ -6,7 +6,6 @@ import "fmt"
 import "errors"
 import "strconv"
 import "os"
-import "encoding/json"
 
 type Position = scanner.Position
 
@@ -28,18 +27,7 @@ func ParseFiles(output string, names ...string) error {
 		}
 		prog = append(prog, sub...)
 	}
-	buf, err := json.Marshal(prog)
-	if err != nil {
-		return err
-	}
-	out, err := os.Create(output)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	out.Write(buf)
-
-	return nil
+	return prog.DumpFile(output)
 }
 
 func Parse(rd io.Reader, name string) (Program, error) {
@@ -63,17 +51,14 @@ func Parse(rd io.Reader, name string) (Program, error) {
 
 	for {
 		tok := scan.Peek()
-		if tok == '\n' {
-			scan.Scan()
-			continue
-		} else if tok == scanner.EOF {
+		if tok == scanner.EOF {
 			break
 		}
 		var ins Instruction
 		err := ins.scan(scan)
 		if err != nil {
 			errs = append(errs, err)
-		} else {
+		} else if ins.Operation != SKIP {
 			prog = append(prog, ins)
 		}
 	}
@@ -104,16 +89,19 @@ func accept(scan *scanner.Scanner, accept ...rune) (token rune, text string, err
 }
 
 func (ins *Instruction) scan(scan *scanner.Scanner) error {
-	tok, text, err := accept(scan, scanner.Ident)
+	tok, text, err := accept(scan, scanner.Ident, '\n')
 	if err != nil {
 		return err
+	}
+	if tok == '\n' {
+		ins.Operation = SKIP
+		return nil
 	}
 
 	err = ins.Operation.UnmarshalText([]byte(text))
 	if err != nil {
 		return scanError(scan, err.Error(), tok)
 	}
-	println("op", ins.Operation.String(), ins.Operation.Operand().String())
 
 	switch ins.Operation.Operand() {
 	case OperandNone:
