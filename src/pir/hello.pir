@@ -1,11 +1,27 @@
-// Set up VDP registers
+NOOP
+INCB
+INCW
+DECB
+DECW
+POPB
+POPW
+DUPB
+DUPW
 
-LABL setup_vdp
-PSHA VdpData
-PSHW 4
-COMP nz
-JPIF setup_vdp
+PSHB 'c'
 
-NAME VdpData
-DATS `abcd`
+PSHW 12345
+OUTB 0x3c
+OUTW 0x3c
+OUTA 0x3c
+INPB 0x2c
+INPW 0x2c
 
+NAME foo
+DATS "hello"
+PSHT foo
+LABL bar
+JUMP bar
+JPIF bar
+COND z
+IASM "halt"

@@ -196,8 +196,10 @@ func (o *Operation) UnmarshalText(text []byte) error {
 		*o = DATS
 	case "IASM":
 		*o = IASM
+	default:
+		return errors.New("unknown operation: " + s)
 	}
-	return errors.New("unknown Operation")
+	return nil
 }
 
 const (

@@ -59,15 +59,14 @@ func Parse(rd io.Reader, name string) (Program, error) {
 	scan.Error = func(s *scanner.Scanner, msg string) {
 		errs = append(errs, fmt.Errorf("scanner error:%s:%s", s.Position, msg))
 	}
-	// scan.Whitespace = 1<<'\t' | 1<<'\r' | 1<<' '
+	scan.Whitespace = 1<<'\t' | 1<<'\r' | 1<<' '
 
 	for {
 		tok := scan.Peek()
 		if tok == '\n' {
-			scan.Next()
+			scan.Scan()
 			continue
-		}
-		if tok == scanner.EOF {
+		} else if tok == scanner.EOF {
 			break
 		}
 		var ins Instruction
@@ -86,32 +85,36 @@ func Parse(rd io.Reader, name string) (Program, error) {
 }
 
 func scanError(scan *scanner.Scanner, msg string, tok rune) error {
-	return fmt.Errorf("%s:%s:%s", scan.Position, msg, scanner.TokenString(tok))
+	return fmt.Errorf("%s:%s:%s:%s", scan.Position, msg, scanner.TokenString(tok), scan.TokenText())
 }
 
 func accept(scan *scanner.Scanner, accept ...rune) (token rune, text string, err error) {
-	tok := scan.Next()
-	println("accept", tok, scan.TokenText())
+	tok := scan.Scan()
 	for _, r := range accept {
 		if tok == r {
 			return tok, scan.TokenText(), nil
 		}
 	}
-	err = scanError(scan, "unexpected token", tok)
+	exp := "expected"
+	for _, r := range accept {
+		exp += " " + scanner.TokenString(r)
+	}
+	err = scanError(scan, "unexpected token "+exp, tok)
 	return 0, "", err
 }
 
 func (ins *Instruction) scan(scan *scanner.Scanner) error {
-	tok, text, err := accept(scan, scanner.Ident, '\n')
+	tok, text, err := accept(scan, scanner.Ident)
 	if err != nil {
 		return err
 	}
-	println(scan.TokenText())
 
 	err = ins.Operation.UnmarshalText([]byte(text))
 	if err != nil {
 		return scanError(scan, err.Error(), tok)
 	}
+	println("op", ins.Operation.String(), ins.Operation.Operand().String())
+
 	switch ins.Operation.Operand() {
 	case OperandNone:
 		break
