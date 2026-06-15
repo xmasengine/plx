@@ -65,6 +65,7 @@ const (
 	POPW                  // Drop word from data stack
 	DUPB                  // Duplicate byte on top of stack
 	DUPW                  // Duplicate word on top of stack
+	NXTW                  // Duplicate word on next of stack to top of stack
 	// byte operand instructions
 
 	PSHB // Push byte literal [byte] to data stack.
@@ -104,6 +105,7 @@ const (
 	SHRB
 	SHRW
 	// could also support rolls and arithmetic shifts
+	GETB // Pop address, get byte, push it
 )
 
 // This is only used by the parser to skip empty lines.
@@ -132,6 +134,8 @@ func (o Operation) String() string {
 		return "DUPB"
 	case DUPW:
 		return "DUPW"
+	case NXTW:
+		return "NXTW"
 	case PSHB:
 		return "PSHB"
 	case PSHW:
@@ -192,6 +196,8 @@ func (o Operation) String() string {
 		return "SHRB"
 	case SHRW:
 		return "SHRW"
+	case GETB:
+		return "GETB"
 	default:
 		return ""
 	}
@@ -226,6 +232,8 @@ func (o *Operation) UnmarshalText(text []byte) error {
 		*o = DUPB
 	case "DUPW":
 		*o = DUPW
+	case "NXTW":
+		*o = NXTW
 	case "PSHB":
 		*o = PSHB
 	case "PSHW":
@@ -286,6 +294,8 @@ func (o *Operation) UnmarshalText(text []byte) error {
 		*o = SHRB
 	case "SHRW":
 		*o = SHRW
+	case "GETB":
+		*o = GETB
 	default:
 		return errors.New("unknown operation: " + s)
 	}
@@ -311,6 +321,8 @@ func (o Operation) Operand() Operand {
 	case DUPB:
 		return OperandNone
 	case DUPW:
+		return OperandNone
+	case NXTW:
 		return OperandNone
 	case PSHB:
 		return OperandByte
@@ -371,6 +383,8 @@ func (o Operation) Operand() Operand {
 	case SHRB:
 		return OperandNone
 	case SHRW:
+		return OperandNone
+	case GETB:
 		return OperandNone
 	default:
 		return OperandNone

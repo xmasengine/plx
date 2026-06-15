@@ -5,6 +5,72 @@ PSHW 18
 PSHA VdpData
 OUTA 0xbf
 
+// Set VRAM output address.
+PSHW 0x4000
+OUTW 0xbf
+
+NAME ClearVRAMLoop
+PSHW 0x4000
+PSHB 0 					// Write 0
+OUTB 0xbe 				// to VRAM which is auto-incremented after each write
+DECW
+COND nz
+JPIF ClearVRAMLoop
+
+// Load palette
+// Set VRAM address to CRAM
+PSHW 0xc000
+OUTW 0xbf
+
+// output color data
+PSHW 22
+PSHA PaletteData
+OUTA 0xbe
+
+// Load font tiles
+// Set VRAM write address to tile index 0
+PSHW 0x4000
+OUTW 0xbf
+
+// Output tile data
+PSHW 0x0C80 // Amount of tiles
+PSHA FontData // Tile address
+
+NAME WriteTilesLoop
+DUPW 		// Duplicate font data address.
+GETB 		// Get byte from font data, pop address.
+OUTB 0xbe 	// Store bye to vdp
+INCW 		// Increment output address.
+NXTW        // Duplicate next of stack which is the amount of tiles.
+DECW		// Decrement and stop if zero
+COND nz
+JPIF WriteTilesLoop
+
+// Write text to name table or tile map.
+// Set VRAM write address to tile index 0
+PSHW 0x7200
+OUTW 0xbf
+
+PSHB 12 // Amount of letters
+PSHA Message // Message address
+NAME WriteMessageLoop
+DUPW 		// Duplicate message data address.
+GETB 		// Get byte from message data, pop address.
+OUTB 0xbe 	// Store bye to vdp
+INCW 		// Increment output address.
+NXTW        // Duplicate next of stack which is the amount of letters.
+DECW		// Decrement and stop if zero
+COND nz
+JPIF WriteMessageLoop
+
+
+// Main screen turn on.
+PSHB 0b11000000
+OUTB 0xbf
+PSHB 0x81
+PSHB 0xbf
+
+
 // prevent running into data
 NAME all_done
 JUMP all_done

@@ -146,6 +146,8 @@ func (z *Z80) emitInstruction(i Instruction) error {
 		return z.emitDUPB(i)
 	case DUPW:
 		return z.emitDUPW(i)
+	case NXTW:
+		return z.emitNXTW(i)
 	case PSHB:
 		return z.emitPSHB(i)
 	case PSHW:
@@ -206,6 +208,8 @@ func (z *Z80) emitInstruction(i Instruction) error {
 		return z.emitSHRB(i)
 	case SHRW:
 		return z.emitSHRW(i)
+	case GETB:
+		return z.emitGETB(i)
 	default:
 		return fmt.Errorf("unknown instrction %d", i.Operation)
 	}
@@ -218,7 +222,7 @@ func (z Z80) pre(ident string) string {
 
 func (z *Z80) label() string {
 	z.lastLabel++
-	return fmt.Sprintf(".%d", z.lastLabel)
+	return fmt.Sprintf("pl_%d", z.lastLabel)
 }
 
 func (z *Z80) push() error {
@@ -241,15 +245,31 @@ func (z *Z80) emitINCW(i Instruction) error { return z.Emitf("inc hl") }
 
 func (z *Z80) emitDECB(i Instruction) error { return z.Emitf("dec l") }
 
-func (z *Z80) emitDECW(i Instruction) error { return z.Emitf("inc hl") }
+func (z *Z80) emitDECW(i Instruction) error { return z.Emitf("dec hl") }
 
 func (z *Z80) emitPOPB(i Instruction) error { return z.pop() }
 
 func (z *Z80) emitPOPW(i Instruction) error { return z.pop() }
 
-func (z *Z80) emitDUPB(i Instruction) error { return z.push() }
+func (z *Z80) emitDUPB(i Instruction) error {
+	z.push()
+	z.Emitf("ld hl,0")
+	z.Emitf("add hl,de")
+	return nil
+}
 
-func (z *Z80) emitDUPW(i Instruction) error { return z.push() }
+func (z *Z80) emitDUPW(i Instruction) error {
+	z.push()
+	// Need to set HL to the same as DE
+	z.Emitf("ld hl,0")
+	z.Emitf("add hl,de")
+	return nil
+}
+
+func (z *Z80) emitNXTW(i Instruction) error {
+	z.push()
+	return nil
+}
 
 func (z *Z80) emitPSHB(i Instruction) error {
 	z.push()
@@ -262,15 +282,15 @@ func (z *Z80) emitPSHA(i Instruction) error { z.push(); return z.Emitf("ld hl,%s
 
 func (z *Z80) emitOUTB(i Instruction) error {
 	z.Emitf("ld a, l")
-	z.Emitf("out (%x), l", i.Int)
+	z.Emitf("out (%#x), a", i.Int)
 	return z.pop()
 }
 
 func (z *Z80) emitOUTW(i Instruction) error {
 	z.Emitf("ld a, l")
-	z.Emitf("out (%x), a", i.Int)
+	z.Emitf("out (%#x), a", i.Int)
 	z.Emitf("ld a, h")
-	z.Emitf("out (%x), l", i.Int)
+	z.Emitf("out (%#x), a", i.Int)
 	return z.pop()
 }
 
@@ -321,8 +341,8 @@ func (z *Z80) emitJUMP(i Instruction) error {
 func (z *Z80) emitJPIF(i Instruction) error {
 	z.Emitf("ld a,l")
 	z.pop()
-	z.Emitf("cp a,0")
-	z.Emitf("jp z, %s:", z.pre(i.Ident))
+	z.Emitf("cp 0")
+	z.Emitf("jp nz, %s", z.pre(i.Ident))
 	return nil
 }
 
@@ -332,12 +352,12 @@ func (z *Z80) emitCOND(i Instruction) error {
 	// todo: check conditions, 16 bits
 	z.Emitf("ld a,l")
 	z.pop()
-	z.Emitf("cp a,l") // compare
-	z.Emitf("jp %s,%s", z.pre(i.Ident), trueLabel)
+	z.Emitf("cp l") // compare
+	z.Emitf("jp %s,%s", i.Ident, trueLabel)
 	z.Emitf("ld hl,0") // false branch
 	z.Emitf("jmp %s", endLabel)
-	z.Emitf("%s\tld hl,1", trueLabel) // true branch
-	z.Emitf("%s\tnop", endLabel)
+	z.Emitf("%s:\tld hl,1", trueLabel) // true branch
+	z.Emitf("%s:\tnop", endLabel)
 	return nil
 }
 
@@ -413,3 +433,10 @@ func (z *Z80) emitSHLW(i Instruction) error { return nil }
 func (z *Z80) emitSHRB(i Instruction) error { return nil }
 
 func (z *Z80) emitSHRW(i Instruction) error { return nil }
+
+func (z *Z80) emitGETB(i Instruction) error {
+	z.Emitf("ld l,(hl)")
+	z.Emitf("ld h,0")
+	// no need to do anything else, l has now the result. hl was the address, now the value.
+	return nil
+}
