@@ -81,13 +81,47 @@ func (p *pirc) Run(args ...string) error {
 	}
 }
 
+type pcomp struct {
+	cli.Command
+	output string
+	common *common
+}
+
+func (p *pcomp) Prepare(c *cli.Command) error {
+	c.StringVar(&p.output, "o", "", "binary output file name")
+	return nil
+}
+
+func (p *pcomp) Run(args ...string) error {
+	if p.output == "" {
+		return errors.New("please specify output file")
+	}
+	if len(args) < 1 {
+		return errors.New("please specify PIR source files")
+	}
+	asmOutput := p.output + ".asm"
+	if p.common.Architecture == arch.Z80 {
+		err := pir.ParseFilesZ80(p.common.Platform, asmOutput, args...)
+		if err != nil {
+			return err
+		}
+		return z80asm.AssembleSMS(p.output, []string{asmOutput})
+
+	} else {
+		return errors.New("achitecture not yet supported: " + p.common.Architecture.String())
+	}
+}
+
 func main() {
 	c := &common{CLI: cli.New()}
 	c.registerFlags()
 	a := &asm{common: c}
 	p := &pirc{common: c}
+	o := &pcomp{common: c}
+
 	c.CLI.Command("asm", a)
 	c.CLI.Command("pir", p)
+	c.CLI.Command("pco", o)
 	err := c.CLI.Start()
 	cli.ExitIfErr("", err)
 }

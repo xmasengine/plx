@@ -150,6 +150,8 @@ func (z *Z80) emitInstruction(i Instruction) error {
 		return z.emitPSHB(i)
 	case PSHW:
 		return z.emitPSHW(i)
+	case PSHA:
+		return z.emitPSHA(i)
 	case OUTB:
 		return z.emitOUTB(i)
 	case OUTW:
@@ -221,12 +223,12 @@ func (z *Z80) label() string {
 
 func (z *Z80) push() error {
 	z.Emitf("push de")
-	z.Emitf("ld de, hl")
+	z.Emitf("ex de, hl")
 	return nil
 }
 
 func (z *Z80) pop() error {
-	z.Emitf("ld hl, de")
+	z.Emitf("ex de,hl")
 	z.Emitf("pop de")
 	return nil
 }
@@ -256,6 +258,7 @@ func (z *Z80) emitPSHB(i Instruction) error {
 }
 
 func (z *Z80) emitPSHW(i Instruction) error { z.push(); return z.Emitf("ld hl,%d", i.Word) }
+func (z *Z80) emitPSHA(i Instruction) error { z.push(); return z.Emitf("ld hl,%s", z.pre(i.Ident)) }
 
 func (z *Z80) emitOUTB(i Instruction) error {
 	z.Emitf("ld a, l")
@@ -273,7 +276,8 @@ func (z *Z80) emitOUTW(i Instruction) error {
 
 func (z *Z80) emitOUTA(i Instruction) error {
 	// LD should be the address, TOS, BC the count with the count in B.
-	z.Emitf("ld c,%x", i.Int)
+	z.Emitf("ld b, e")
+	z.Emitf("ld c, %#x", i.Int)
 	z.Emitf("otir")
 	z.pop()
 	z.pop()

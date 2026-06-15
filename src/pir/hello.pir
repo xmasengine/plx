@@ -1,6 +1,11 @@
 
 
-/// prevent running into data
+// Set up VDP registers
+PSHW 18
+PSHA VdpData
+OUTA 0xbf
+
+// prevent running into data
 NAME all_done
 JUMP all_done
 

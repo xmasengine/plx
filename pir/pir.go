@@ -71,6 +71,7 @@ const (
 
 	// word operand instructions
 	PSHW // Push word literal [word] to data stack.
+	PSHA // Push address of [ident] to data stack.
 	// int operand instructions
 	OUTB // Output TOS byte to port [int] (constant literal) and pop.
 	OUTW // Output TOS word to port [int] (constant literal) and pop.
@@ -135,6 +136,8 @@ func (o Operation) String() string {
 		return "PSHB"
 	case PSHW:
 		return "PSHW"
+	case PSHA:
+		return "PSHA"
 	case OUTB:
 		return "OUTB"
 	case OUTW:
@@ -227,6 +230,8 @@ func (o *Operation) UnmarshalText(text []byte) error {
 		*o = PSHB
 	case "PSHW":
 		*o = PSHW
+	case "PSHA":
+		*o = PSHA
 	case "OUTB":
 		*o = OUTB
 	case "OUTW":
@@ -311,6 +316,8 @@ func (o Operation) Operand() Operand {
 		return OperandByte
 	case PSHW:
 		return OperandWord
+	case PSHA:
+		return OperandIdent
 	case OUTB:
 		return OperandInt
 	case OUTW:
