@@ -83,7 +83,7 @@ type Z80 struct {
 
 const z80Header = `
 // Banking setup
-banksize %x
+banksize %#x
 bankat 0
 bank 0
 
@@ -95,19 +95,19 @@ org 0x0000
     jp main         //  jump to main program
 
 // Interrupt handler
-org %x
+org %#x
 	reti // do nothing for now
 
 
 //  Pause button/NMI handler
-org %x
+org %#x
     //  Do nothing
     retn
 
 // Main program
 main:
 	// Set up stack.
-    ld sp, %x
+    ld sp, %#x
 `
 
 func (z *Z80) emitHeader() error {
