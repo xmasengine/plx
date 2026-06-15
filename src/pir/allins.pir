@@ -1,0 +1,36 @@
+// comment
+NOOP // inline comment
+/*
+long
+comment
+also
+supported
+*/
+
+INCB
+INCW
+DECB
+DECW
+POPB
+POPW
+DUPB
+DUPW
+
+PSHB 'c'
+
+PSHW 12345
+OUTB 0x3c
+OUTW 0x3c
+OUTA 0x3c
+INPB 0x2c
+INPW 0x2c
+
+NAME foo
+DATS "hello"
+PSHT foo
+LABL bar
+JUMP bar
+JPIF bar
+COND z
+// no newline needed at EOF.
+IASM "halt"

@@ -7,6 +7,16 @@ PIR is an intermediate representation that models an abstract machine
 with a data stack, a return stack, variables in read/write locations,
 and data in read only locations.
 
+TOS = top of stack, NXT is the next of stack, SP3 is the third of stack, etc.
+
+For operations with 1 result and 0 inputs: push ; OP -> TOS
+For operations with 1 result and 1 inputs: TOS -> OP -> TOS
+For operations with 1 result and 2 inputs: NXT, TOS -> OP -> TOS
+For operations with 1 result and 3 inputs: SP3, NXT, TOS -> OP -> TOS
+
+The stack contains only 16 bits values. 8 bits values have the high byte 0.
+This makes stack dicipline easier.
+
 */
 import "errors"
 
@@ -77,6 +87,22 @@ const (
 	// data operand instructions
 	DATS // Data String
 	IASM
+
+	ADDB
+	ADDW
+	SUBB
+	SUBW
+	ANDB
+	ANDW
+	BORB
+	BORW
+	XORB
+	XORW
+	SHLB
+	SHLW
+	SHRB
+	SHRW
+	// could also support rolls and arithmetic shifts
 )
 
 // This is only used by the parser to skip empty lines.
@@ -135,6 +161,34 @@ func (o Operation) String() string {
 		return "DATS"
 	case IASM:
 		return "IASM"
+	case ADDB:
+		return "ADDB"
+	case ADDW:
+		return "ADDW"
+	case SUBB:
+		return "SUBB"
+	case SUBW:
+		return "SUBW"
+	case ANDB:
+		return "ANDB"
+	case ANDW:
+		return "ANDW"
+	case BORB:
+		return "BORB"
+	case BORW:
+		return "BORW"
+	case XORB:
+		return "XORB"
+	case XORW:
+		return "XORW"
+	case SHLB:
+		return "SHLB"
+	case SHLW:
+		return "SHLW"
+	case SHRB:
+		return "SHRB"
+	case SHRW:
+		return "SHRW"
 	default:
 		return ""
 	}
@@ -199,26 +253,39 @@ func (o *Operation) UnmarshalText(text []byte) error {
 		*o = DATS
 	case "IASM":
 		*o = IASM
+	case "ADDB":
+		*o = ADDB
+	case "ADDW":
+		*o = ADDW
+	case "SUBB":
+		*o = SUBB
+	case "SUBW":
+		*o = SUBW
+	case "ANDB":
+		*o = ANDB
+	case "ANDW":
+		*o = ANDW
+	case "BORB":
+		*o = BORB
+	case "BORW":
+		*o = BORW
+	case "XORB":
+		*o = XORB
+	case "XORW":
+		*o = XORW
+	case "SHLB":
+		*o = SHLB
+	case "SHLW":
+		*o = SHLW
+	case "SHRB":
+		*o = SHRB
+	case "SHRW":
+		*o = SHRW
 	default:
 		return errors.New("unknown operation: " + s)
 	}
 	return nil
 }
-
-const (
-	firstNoOp     = NOOP
-	lastNoOp      = DUPW
-	firstByteOp   = PSHB
-	lastByteOp    = PSHB
-	firstWordOp   = PSHW
-	lastWordOp    = PSHW
-	firstIntOp    = OUTB
-	lastIntOp     = INPW
-	firstIdentOp  = NAME
-	lastIdentOp   = NAME
-	firstStringOp = COND
-	lastStringOp  = IASM
-)
 
 func (o Operation) Operand() Operand {
 	switch o {
@@ -270,6 +337,34 @@ func (o Operation) Operand() Operand {
 		return OperandString
 	case IASM:
 		return OperandString
+	case ADDB:
+		return OperandNone
+	case ADDW:
+		return OperandNone
+	case SUBB:
+		return OperandNone
+	case SUBW:
+		return OperandNone
+	case ANDB:
+		return OperandNone
+	case ANDW:
+		return OperandNone
+	case BORB:
+		return OperandNone
+	case BORW:
+		return OperandNone
+	case XORB:
+		return OperandNone
+	case XORW:
+		return OperandNone
+	case SHLB:
+		return OperandNone
+	case SHLW:
+		return OperandNone
+	case SHRB:
+		return OperandNone
+	case SHRW:
+		return OperandNone
 	default:
 		return OperandNone
 	}

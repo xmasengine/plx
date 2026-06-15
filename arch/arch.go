@@ -9,6 +9,7 @@ type Architecture string
 const (
 	Z80   Architecture = "z80"
 	A6052 Architecture = "6052"
+	PIR   Architecture = "pir" // PIR acthitecture to produce PIR output only.
 )
 
 func (a Architecture) String() string {

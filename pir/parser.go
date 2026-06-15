@@ -9,7 +9,7 @@ import "os"
 
 type Position = scanner.Position
 
-func ParseFile(name string) (Program, error) {
+func ParseFilePIR(name string) (Program, error) {
 	in, err := os.Open(name)
 	if err != nil {
 		return nil, err
@@ -18,10 +18,10 @@ func ParseFile(name string) (Program, error) {
 	return Parse(in, name)
 }
 
-func ParseFiles(output string, names ...string) error {
+func ParseFilesPIR(output string, names ...string) error {
 	prog := Program{}
 	for _, name := range names {
-		sub, err := ParseFile(name)
+		sub, err := ParseFilePIR(name)
 		if err != nil {
 			return err
 		}

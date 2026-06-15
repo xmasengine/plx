@@ -72,8 +72,13 @@ func (p *pirc) Run(args ...string) error {
 	if len(args) < 1 {
 		return errors.New("please specify pir source files")
 	}
-
-	return pir.ParseFiles(p.output, args...)
+	if p.common.Architecture == arch.PIR {
+		return pir.ParseFilesPIR(p.output, args...)
+	} else if p.common.Architecture == arch.Z80 {
+		return pir.ParseFilesZ80(p.common.Platform, p.output, args...)
+	} else {
+		return errors.New("achitecture not yet supported: " + p.common.Architecture.String())
+	}
 }
 
 func main() {
