@@ -7,6 +7,21 @@ PIR is an intermediate representation that models an abstract machine
 with a data stack, a return stack, variables in read/write locations,
 and data in read only locations.
 
+Considerations on the PIR a virtual machine architecture.
+
+On the stack: while mixed stack is easier to implement, a split call and data
+stack is a lot safer, makes tasks easier, and on some 8/16 bits
+arhcitectures the hardware stack is small or only availble just
+for that purpose. A data stack is not strictly needed if there is no recursion,
+but it is safer/easier for deep calls.
+
+On variable use: it is neccesary
+
+
+
+
+
+
 TOS = top of stack, NXT is the next of stack, SP3 is the third of stack, etc.
 
 For operations with 1 result and 0 inputs: push ; OP -> TOS
@@ -20,38 +35,7 @@ This makes stack dicipline easier.
 */
 import "errors"
 
-type Operand int
-
-const (
-	OperandNone Operand = iota
-	OperandByte
-	OperandWord
-	OperandInt
-	OperandIdent
-	OperandString
-)
-
-func (o Operand) String() string {
-	switch o {
-	case OperandNone:
-		return "None"
-	case OperandByte:
-		return "Byte"
-	case OperandWord:
-		return "Word"
-	case OperandInt:
-		return "Int"
-	case OperandIdent:
-		return "Ident"
-	case OperandString:
-		return "String"
-	default:
-		return ""
-	}
-}
-
-const OperandShift = 8
-
+/*
 type Operation int
 
 const (
@@ -107,6 +91,7 @@ const (
 	// could also support rolls and arithmetic shifts
 	GETB // Pop address, get byte, push it
 )
+*/
 
 // This is only used by the parser to skip empty lines.
 const SKIP Operation = -1
