@@ -11,82 +11,82 @@ import (
 )
 
 const (
-	// OperandNone is a Operand of type None.
-	OperandNone Operand = iota
-	// OperandByte is a Operand of type Byte.
-	OperandByte
-	// OperandWord is a Operand of type Word.
-	OperandWord
-	// OperandInt is a Operand of type Int.
-	OperandInt
-	// OperandIdent is a Operand of type Ident.
-	OperandIdent
-	// OperandString is a Operand of type String.
-	OperandString
-	// OperandRegister is a Operand of type Register.
-	OperandRegister
-	// OperandTemporary is a Operand of type Temporary.
-	OperandTemporary
+	// KindNone is a Kind of type None.
+	KindNone Kind = iota
+	// KindByte is a Kind of type Byte.
+	KindByte
+	// KindWord is a Kind of type Word.
+	KindWord
+	// KindInt is a Kind of type Int.
+	KindInt
+	// KindIdent is a Kind of type Ident.
+	KindIdent
+	// KindString is a Kind of type String.
+	KindString
+	// KindRegister is a Kind of type Register.
+	KindRegister
+	// KindTemporary is a Kind of type Temporary.
+	KindTemporary
 )
 
-var ErrInvalidOperand = errors.New("not a valid Operand")
+var ErrInvalidKind = errors.New("not a valid Kind")
 
-const _OperandName = "NoneByteWordIntIdentStringRegisterTemporary"
+const _KindName = "NoneByteWordIntIdentStringRegisterTemporary"
 
-var _OperandMap = map[Operand]string{
-	OperandNone:      _OperandName[0:4],
-	OperandByte:      _OperandName[4:8],
-	OperandWord:      _OperandName[8:12],
-	OperandInt:       _OperandName[12:15],
-	OperandIdent:     _OperandName[15:20],
-	OperandString:    _OperandName[20:26],
-	OperandRegister:  _OperandName[26:34],
-	OperandTemporary: _OperandName[34:43],
+var _KindMap = map[Kind]string{
+	KindNone:      _KindName[0:4],
+	KindByte:      _KindName[4:8],
+	KindWord:      _KindName[8:12],
+	KindInt:       _KindName[12:15],
+	KindIdent:     _KindName[15:20],
+	KindString:    _KindName[20:26],
+	KindRegister:  _KindName[26:34],
+	KindTemporary: _KindName[34:43],
 }
 
 // String implements the Stringer interface.
-func (x Operand) String() string {
-	if str, ok := _OperandMap[x]; ok {
+func (x Kind) String() string {
+	if str, ok := _KindMap[x]; ok {
 		return str
 	}
-	return fmt.Sprintf("Operand(%d)", x)
+	return fmt.Sprintf("Kind(%d)", x)
 }
 
 // IsValid provides a quick way to determine if the typed value is
 // part of the allowed enumerated values
-func (x Operand) IsValid() bool {
-	_, ok := _OperandMap[x]
+func (x Kind) IsValid() bool {
+	_, ok := _KindMap[x]
 	return ok
 }
 
-var _OperandValue = map[string]Operand{
-	_OperandName[0:4]:   OperandNone,
-	_OperandName[4:8]:   OperandByte,
-	_OperandName[8:12]:  OperandWord,
-	_OperandName[12:15]: OperandInt,
-	_OperandName[15:20]: OperandIdent,
-	_OperandName[20:26]: OperandString,
-	_OperandName[26:34]: OperandRegister,
-	_OperandName[34:43]: OperandTemporary,
+var _KindValue = map[string]Kind{
+	_KindName[0:4]:   KindNone,
+	_KindName[4:8]:   KindByte,
+	_KindName[8:12]:  KindWord,
+	_KindName[12:15]: KindInt,
+	_KindName[15:20]: KindIdent,
+	_KindName[20:26]: KindString,
+	_KindName[26:34]: KindRegister,
+	_KindName[34:43]: KindTemporary,
 }
 
-// ParseOperand attempts to convert a string to a Operand.
-func ParseOperand(name string) (Operand, error) {
-	if x, ok := _OperandValue[name]; ok {
+// ParseKind attempts to convert a string to a Kind.
+func ParseKind(name string) (Kind, error) {
+	if x, ok := _KindValue[name]; ok {
 		return x, nil
 	}
-	return Operand(0), fmt.Errorf("%s is %w", name, ErrInvalidOperand)
+	return Kind(0), fmt.Errorf("%s is %w", name, ErrInvalidKind)
 }
 
 // MarshalText implements the text marshaller method.
-func (x Operand) MarshalText() ([]byte, error) {
+func (x Kind) MarshalText() ([]byte, error) {
 	return []byte(x.String()), nil
 }
 
 // UnmarshalText implements the text unmarshaller method.
-func (x *Operand) UnmarshalText(text []byte) error {
+func (x *Kind) UnmarshalText(text []byte) error {
 	name := string(text)
-	tmp, err := ParseOperand(name)
+	tmp, err := ParseKind(name)
 	if err != nil {
 		return err
 	}
@@ -98,6 +98,6 @@ func (x *Operand) UnmarshalText(text []byte) error {
 // (allocating a larger slice if necessary) and returns the updated slice.
 //
 // Implementations must not retain b, nor mutate any bytes within b[:len(b)].
-func (x *Operand) AppendText(b []byte) ([]byte, error) {
+func (x *Kind) AppendText(b []byte) ([]byte, error) {
 	return append(b, x.String()...), nil
 }

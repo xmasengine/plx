@@ -15,83 +15,61 @@ arhcitectures the hardware stack is small or only availble just
 for that purpose. A data stack is not strictly needed if there is no recursion,
 but it is safer/easier for deep calls.
 
-On variable use: it is neccesary
+On variable use: it is neccesary to allow loading and storing to
+variables in RAM. Also accesss to ROM is definitely needed for data storage.
 
+On virtual register size: Since we have to store adesses is is easiest
+to simulate a 16 bits machine with 16bits registerd that have H and L bytes.
 
+On the virtual registers. It would be possible to use from 0 up to 16 virtual
+16 bits registers. The less registers, the easier to implement on
+register starved machines like the NES, but the more slow stack operations
+or storage to memory will be needed to spill the register contents.
+It is possible to use real registers for the top of stack or next of stack,
+but in practice that is diffucult to manage.
+The more registers the better the performance on machines that have more real
+registers, but the more registers must be emulated by using zero page or RAM
+on machines with less real registers.
 
+If I look at 0,1,2,4,8 or 16 16 bits registers, the balance looks like this:
 
+0: Pure stack based. While, e.g, there are FORTHs that on this on z80,
+	it is not that performant.
+	While FORTH is nice in theory im practice it is hard to balance the stack.
+	I tried this first but it didn't work well.
+1: Accumulator only. While this is nice for NES,
+	for z80 it underuses the registers.
+	It is also difficult to program for.
+2: Accumulator and operand. Slightly easier than 1 register, but the result in
+	the accumulator has to be spilled immediately.
+4: Medium amound of spilling, not too many fake registers.
+	Z80 and 8086 more or less have this, so ideal for those CPUs.
+8: Less spilling but more fake registers.
+	4 registers is still a bit few for complex operations, but on most
+	 bits machines the registers will be fake.
+16: Would only be feasible on an Atmel,
+	too many fake registers on other machines.
 
+Having tried 0 and 2 registers, I found thses hard to use, so I decided
+on a middle ground betweem 4 and 8: the virtual PIR CPU will have 4 virtual
+16bits registers R1..R4. But it also has 4 16 bits virtual temporary storage
+locations, T1..T4. These can only be stored to and loaded from.
+There may be further limitations on how the 4 registers may be used.
 
-TOS = top of stack, NXT is the next of stack, SP3 is the third of stack, etc.
+As for the intructions, a 1 operand instruction works well on a
+stack machine or 1 register machine, but less so on a 4 register machine.
+While I tried 1 operand before, it also was fragile at times, for example for
+data, etc. Therefore PIR will use a fixed 2 operand format. This to simplify
+parsing.
 
-For operations with 1 result and 0 inputs: push ; OP -> TOS
-For operations with 1 result and 1 inputs: TOS -> OP -> TOS
-For operations with 1 result and 2 inputs: NXT, TOS -> OP -> TOS
-For operations with 1 result and 3 inputs: SP3, NXT, TOS -> OP -> TOS
+The 2 operand instructions will somewhat unusually use the left hand operand
+as the source or modifier and the right hand operand as as the target. E.g:
 
-The stack contains only 16 bits values. 8 bits values have the high byte 0.
-This makes stack dicipline easier.
+	* MOV R1, R2 // R2 = R1 as R2 is the target.
+	* JMP Z, FOO ; conditional jump as Z the modifier and FOO is the target.
 
 */
 import "errors"
-
-/*
-type Operation int
-
-const (
-	// no operand instructions
-	NOOP Operation = iota // no operation
-	INCB                  // increment stop of stack byte
-	INCW                  // increment stop of stack word
-	DECB                  // increment stop of stack byte
-	DECW                  // increment stop of stack word
-	POPB                  // Drop byte from data stack
-	POPW                  // Drop word from data stack
-	DUPB                  // Duplicate byte on top of stack
-	DUPW                  // Duplicate word on top of stack
-	NXTW                  // Duplicate word on next of stack to top of stack
-	// byte operand instructions
-
-	PSHB // Push byte literal [byte] to data stack.
-
-	// word operand instructions
-	PSHW // Push word literal [word] to data stack.
-	PSHA // Push address of [ident] to data stack.
-	// int operand instructions
-	OUTB // Output TOS byte to port [int] (constant literal) and pop.
-	OUTW // Output TOS word to port [int] (constant literal) and pop.
-	OUTA // Output TOS address, length NXT bytes to port [int] (constant literal) and pop twice.
-	INPB // Input byte from port [int], push to stack.
-	INPW // Input word from port [int], push to stack.
-	// ident operand instructions
-	NAME // Name tag of next DATS, VARI, FUNC, etc instruction [ident].
-	PSHT // Push address of tag [ident] to data stack.
-	LABL // Define jump location [ident].
-	JUMP // Jump to tag [ident] unconditionally.
-	JPIF // Jump to tag [ident] it TOS is TRUE, pop stack.
-	COND // Ident is one of [eq, gt, lt, etc], compare and push boolean to TOS.
-	// data operand instructions
-	DATS // Data String
-	IASM
-
-	ADDB
-	ADDW
-	SUBB
-	SUBW
-	ANDB
-	ANDW
-	BORB
-	BORW
-	XORB
-	XORW
-	SHLB
-	SHLW
-	SHRB
-	SHRW
-	// could also support rolls and arithmetic shifts
-	GETB // Pop address, get byte, push it
-)
-*/
 
 // This is only used by the parser to skip empty lines.
 const SKIP Operation = -1
@@ -99,294 +77,11 @@ const SKIP Operation = -1
 // This is only used by the parser to indicate the end of file.
 const DONE Operation = -2
 
-func (o Operation) String() string {
-	switch o {
-	case NOOP:
-		return "NOOP"
-	case INCB:
-		return "INCB"
-	case INCW:
-		return "INCW"
-	case DECB:
-		return "DECB"
-	case DECW:
-		return "DECW"
-	case POPB:
-		return "POPB"
-	case POPW:
-		return "POPW"
-	case DUPB:
-		return "DUPB"
-	case DUPW:
-		return "DUPW"
-	case NXTW:
-		return "NXTW"
-	case PSHB:
-		return "PSHB"
-	case PSHW:
-		return "PSHW"
-	case PSHA:
-		return "PSHA"
-	case OUTB:
-		return "OUTB"
-	case OUTW:
-		return "OUTW"
-	case OUTA:
-		return "OUTA"
-	case INPB:
-		return "INPB"
-	case INPW:
-		return "INPW"
-	case NAME:
-		return "NAME"
-	case PSHT:
-		return "PSHT"
-	case LABL:
-		return "LABL"
-	case JUMP:
-		return "JUMP"
-	case JPIF:
-		return "JPIF"
-	case COND:
-		return "COND"
-	case DATS:
-		return "DATS"
-	case IASM:
-		return "IASM"
-	case ADDB:
-		return "ADDB"
-	case ADDW:
-		return "ADDW"
-	case SUBB:
-		return "SUBB"
-	case SUBW:
-		return "SUBW"
-	case ANDB:
-		return "ANDB"
-	case ANDW:
-		return "ANDW"
-	case BORB:
-		return "BORB"
-	case BORW:
-		return "BORW"
-	case XORB:
-		return "XORB"
-	case XORW:
-		return "XORW"
-	case SHLB:
-		return "SHLB"
-	case SHLW:
-		return "SHLW"
-	case SHRB:
-		return "SHRB"
-	case SHRW:
-		return "SHRW"
-	case GETB:
-		return "GETB"
-	default:
-		return ""
-	}
-}
-
-func (o Operation) MarshalText() ([]byte, error) {
-	s := o.String()
-	if s == "" {
-		return nil, errors.New("unknown Operation")
-	}
-	return []byte(s), nil
-}
-
-func (o *Operation) UnmarshalText(text []byte) error {
-	s := string(text)
-	switch s {
-	case "NOOP":
-		*o = NOOP
-	case "INCB":
-		*o = INCB
-	case "INCW":
-		*o = INCW
-	case "DECB":
-		*o = DECB
-	case "DECW":
-		*o = DECW
-	case "POPB":
-		*o = POPB
-	case "POPW":
-		*o = POPW
-	case "DUPB":
-		*o = DUPB
-	case "DUPW":
-		*o = DUPW
-	case "NXTW":
-		*o = NXTW
-	case "PSHB":
-		*o = PSHB
-	case "PSHW":
-		*o = PSHW
-	case "PSHA":
-		*o = PSHA
-	case "OUTB":
-		*o = OUTB
-	case "OUTW":
-		*o = OUTW
-	case "OUTA":
-		*o = OUTA
-	case "INPB":
-		*o = INPB
-	case "INPW":
-		*o = INPW
-	case "NAME":
-		*o = NAME
-	case "PSHT":
-		*o = PSHT
-	case "LABL":
-		*o = LABL
-	case "JUMP":
-		*o = JUMP
-	case "JPIF":
-		*o = JPIF
-	case "COND":
-		*o = COND
-	case "DATS":
-		*o = DATS
-	case "IASM":
-		*o = IASM
-	case "ADDB":
-		*o = ADDB
-	case "ADDW":
-		*o = ADDW
-	case "SUBB":
-		*o = SUBB
-	case "SUBW":
-		*o = SUBW
-	case "ANDB":
-		*o = ANDB
-	case "ANDW":
-		*o = ANDW
-	case "BORB":
-		*o = BORB
-	case "BORW":
-		*o = BORW
-	case "XORB":
-		*o = XORB
-	case "XORW":
-		*o = XORW
-	case "SHLB":
-		*o = SHLB
-	case "SHLW":
-		*o = SHLW
-	case "SHRB":
-		*o = SHRB
-	case "SHRW":
-		*o = SHRW
-	case "GETB":
-		*o = GETB
-	default:
-		return errors.New("unknown operation: " + s)
-	}
-	return nil
-}
-
-func (o Operation) Operand() Operand {
-	switch o {
-	case NOOP:
-		return OperandNone
-	case INCB:
-		return OperandNone
-	case INCW:
-		return OperandNone
-	case DECB:
-		return OperandNone
-	case DECW:
-		return OperandNone
-	case POPB:
-		return OperandNone
-	case POPW:
-		return OperandNone
-	case DUPB:
-		return OperandNone
-	case DUPW:
-		return OperandNone
-	case NXTW:
-		return OperandNone
-	case PSHB:
-		return OperandByte
-	case PSHW:
-		return OperandWord
-	case PSHA:
-		return OperandIdent
-	case OUTB:
-		return OperandInt
-	case OUTW:
-		return OperandInt
-	case OUTA:
-		return OperandInt
-	case INPB:
-		return OperandInt
-	case INPW:
-		return OperandInt
-	case NAME:
-		return OperandIdent
-	case PSHT:
-		return OperandIdent
-	case LABL:
-		return OperandIdent
-	case JUMP:
-		return OperandIdent
-	case JPIF:
-		return OperandIdent
-	case COND:
-		return OperandIdent
-	case DATS:
-		return OperandString
-	case IASM:
-		return OperandString
-	case ADDB:
-		return OperandNone
-	case ADDW:
-		return OperandNone
-	case SUBB:
-		return OperandNone
-	case SUBW:
-		return OperandNone
-	case ANDB:
-		return OperandNone
-	case ANDW:
-		return OperandNone
-	case BORB:
-		return OperandNone
-	case BORW:
-		return OperandNone
-	case XORB:
-		return OperandNone
-	case XORW:
-		return OperandNone
-	case SHLB:
-		return OperandNone
-	case SHLW:
-		return OperandNone
-	case SHRB:
-		return OperandNone
-	case SHRW:
-		return OperandNone
-	case GETB:
-		return OperandNone
-	default:
-		return OperandNone
-	}
-}
-
-// Instructions consist of an opcode and a single optional operand.
-// This means some instructions have to look back at the previous
-// instruction to get all their operands if one is not enough.
+// Instructions consist of an opcode and two mandatory operands.
 type Instruction struct {
 	Operation // Operation
-
-	Byte  uint8  // Filled in for OperandByte
-	Word  uint16 // Filled in for OperandWord
-	Int   int    // Filled in for OperandInt
-	Str   string // Filled in for OperandString
-	Ident string // Filled in for OperandIdent
+	Src       Operand
+	Dst       Operand
 }
 
 // Program is a list of instructions
