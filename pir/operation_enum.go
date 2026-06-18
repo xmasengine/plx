@@ -12,119 +12,168 @@ import (
 
 const (
 	// no operation
-	NOOP Operation = iota
-	// increment stop of stack byte
-	INCB
-	// increment stop of stack word
-	INCW
-	// increment stop of stack byte
-	DECB
-	// increment stop of stack word
-	DECW
-	// Drop byte from data stack
-	POPB
-	// Drop word from data stack
-	POPW
-	// Duplicate byte on top of stack
-	DUPB
-	// Duplicate word on top of stack
-	DUPW
-	// Duplicate word on next of stack to top of stack
-	NXTW
-	// Push byte literal [byte] to data stack.
-	PSHB
-	// Push word literal [word] to data stack.
-	PSHW
-	// Push address of [ident] to data stack.
-	PSHA
-	// Output TOS byte to port [int] (constant literal) and pop.
-	OUTB
-	// Output TOS word to port [int] (constant literal) and pop.
-	OUTW
-	// Output TOS address, length NXT bytes to port [int] (constant literal) and pop twice.
-	OUTA
-	// Input byte from port [int], push to stack.
-	INPB
-	// Input word from port [int], push to stack.
-	INPW
+	NOOPE Operation = iota
+	// move register byte RnL -> RmL or RnH -> RmH
+	MOVRB
+	// move register word RnL -> RmL or RnH -> RmH
+	MOVRW
+	// Get byte from address pointed by Rn to Rm
+	GETRB
+	// Get word from address pointed by Rn to Rm
+	GETRW
+	// increment register byte
+	INCRB
+	// increment register word
+	INCRW
+	// decrement register byte
+	DECRB
+	// decrement register word
+	DECRW
+	// push register word to data stack
+	PUSHW
+	// pop data stack word to register (there is no byte variant)
+	POPRW
+	// Store literal byte in register RnL or RnH
+	LITRB
+	// Store literal word in register RnL
+	LITRW
+	// Output register byte to port [int] (constant literal).
+	OUTRB
+	// Output register word to port [int] (constant literal).
+	OUTRW
+	// Output R1 must have the address, R2 the length, output to port [int]
+	OUTRA
+	// Input byte from port [int] to register.
+	INPRB
+	// Input word from port [int] to register.
+	INPWB
+	// Output R1 must have the address, R2 the length, input from port [int]
+	INPRA
 	// Name tag of next DATS, VARI, FUNC, etc instruction [ident].
-	NAME
-	// Push address of tag [ident] to data stack.
-	PSHT
+	NAMET
+	// Load tag address into register.
+	LOADT
 	// Define jump location [ident].
-	LABL
+	LABEL
 	// Jump to tag [ident] unconditionally.
-	JUMP
-	// Jump to tag [ident] it TOS is TRUE, pop stack.
-	JPIF
-	// Ident is one of [eq, gt, lt, etc], compare and push boolean to TOS.
-	COND
-	// Data String
-	DATS
-	IASM
-	ADDB
-	ADDW
-	SUBB
-	SUBW
-	ANDB
-	ANDW
-	BORB
-	BORW
-	XORB
-	XORW
-	SHLB
-	SHLW
-	SHRB
-	SHRW
-	GETB
+	JUMPT
+	// Jump on [cond] to tag [ident] it TOS is TRUE, pop stack.
+	JPIFT
+	// Ident is one of [eq, gt, lt, etc], compare register with R1L and store in R1L.
+	CONDB
+	// Data String.
+	DATAS
+	// Inline assembly string.
+	IASMS
+	// Add byte Rn to Rm and store in Rm
+	ADDRB
+	// Add word Rn to Rm and store in Rm
+	ADDRW
+	// Subtract byte Rn from Rm and store in Rm
+	SUBRB
+	// Subtract word Rn from Rm and store in Rm
+	SUBRW
+	// AND byte Rn with Rm and store in Rm
+	ANDRB
+	// AND word Rn with Rm and store in Rm
+	ANDRW
+	// Binary OR byte Rn with Rm and store in Rm
+	BORRB
+	// Binary OR word Rn with Rm and store in Rm
+	BORRW
+	// Binary XOR byte Rn with Rm and store in Rm
+	XORRB
+	// Binary XOR word Rn with Rm and store in Rm
+	XORRW
+	// Shift left by Int to byte register.
+	SHLRB
+	// Shift left by Int to word register.
+	SHLRW
+	// Shift right by Int to byte register.
+	SHRRB
+	// Shift right by Int to word register.
+	SHRRW
+	// Store register to temporary Rn to Tn. There is no byte variant.
+	STORT
+	// Get temporary to register. There is no byte variant.
+	GETTR
+	// Call tag.
+	CALLT
+	// Return normally from a call.
+	RETRN
+	// Return from an interrupt call.
+	RETIN
+	// Return from an nmi call.
+	RETNM
+	// Set tag as an interrupt handler.
+	INTRT
+	// Set tag an an NMI handler.
+	NMIHT
+	// Copy R2 length bytes to R1. XXX: better ideas.
+	COPYR
+	// Switch active memory bank to constant int.
+	BANKI
+	// Switch battery backed memory on or off and store address in R.
+	BATER
 )
 
 var ErrInvalidOperation = fmt.Errorf("not a valid Operation, try [%s]", strings.Join(_OperationNames, ", "))
 
-const _OperationName = "NOOPINCBINCWDECBDECWPOPBPOPWDUPBDUPWNXTWPSHBPSHWPSHAOUTBOUTWOUTAINPBINPWNAMEPSHTLABLJUMPJPIFCONDDATSIASMADDBADDWSUBBSUBWANDBANDWBORBBORWXORBXORWSHLBSHLWSHRBSHRWGETB"
+const _OperationName = "NOOPEMOVRBMOVRWGETRBGETRWINCRBINCRWDECRBDECRWPUSHWPOPRWLITRBLITRWOUTRBOUTRWOUTRAINPRBINPWBINPRANAMETLOADTLABELJUMPTJPIFTCONDBDATASIASMSADDRBADDRWSUBRBSUBRWANDRBANDRWBORRBBORRWXORRBXORRWSHLRBSHLRWSHRRBSHRRWSTORTGETTRCALLTRETRNRETINRETNMINTRTNMIHTCOPYRBANKIBATER"
 
 var _OperationNames = []string{
-	_OperationName[0:4],
-	_OperationName[4:8],
-	_OperationName[8:12],
-	_OperationName[12:16],
-	_OperationName[16:20],
-	_OperationName[20:24],
-	_OperationName[24:28],
-	_OperationName[28:32],
-	_OperationName[32:36],
-	_OperationName[36:40],
-	_OperationName[40:44],
-	_OperationName[44:48],
-	_OperationName[48:52],
-	_OperationName[52:56],
-	_OperationName[56:60],
-	_OperationName[60:64],
-	_OperationName[64:68],
-	_OperationName[68:72],
-	_OperationName[72:76],
-	_OperationName[76:80],
-	_OperationName[80:84],
-	_OperationName[84:88],
-	_OperationName[88:92],
-	_OperationName[92:96],
-	_OperationName[96:100],
-	_OperationName[100:104],
-	_OperationName[104:108],
-	_OperationName[108:112],
-	_OperationName[112:116],
-	_OperationName[116:120],
-	_OperationName[120:124],
-	_OperationName[124:128],
-	_OperationName[128:132],
-	_OperationName[132:136],
-	_OperationName[136:140],
-	_OperationName[140:144],
-	_OperationName[144:148],
-	_OperationName[148:152],
-	_OperationName[152:156],
-	_OperationName[156:160],
-	_OperationName[160:164],
+	_OperationName[0:5],
+	_OperationName[5:10],
+	_OperationName[10:15],
+	_OperationName[15:20],
+	_OperationName[20:25],
+	_OperationName[25:30],
+	_OperationName[30:35],
+	_OperationName[35:40],
+	_OperationName[40:45],
+	_OperationName[45:50],
+	_OperationName[50:55],
+	_OperationName[55:60],
+	_OperationName[60:65],
+	_OperationName[65:70],
+	_OperationName[70:75],
+	_OperationName[75:80],
+	_OperationName[80:85],
+	_OperationName[85:90],
+	_OperationName[90:95],
+	_OperationName[95:100],
+	_OperationName[100:105],
+	_OperationName[105:110],
+	_OperationName[110:115],
+	_OperationName[115:120],
+	_OperationName[120:125],
+	_OperationName[125:130],
+	_OperationName[130:135],
+	_OperationName[135:140],
+	_OperationName[140:145],
+	_OperationName[145:150],
+	_OperationName[150:155],
+	_OperationName[155:160],
+	_OperationName[160:165],
+	_OperationName[165:170],
+	_OperationName[170:175],
+	_OperationName[175:180],
+	_OperationName[180:185],
+	_OperationName[185:190],
+	_OperationName[190:195],
+	_OperationName[195:200],
+	_OperationName[200:205],
+	_OperationName[205:210],
+	_OperationName[210:215],
+	_OperationName[215:220],
+	_OperationName[220:225],
+	_OperationName[225:230],
+	_OperationName[230:235],
+	_OperationName[235:240],
+	_OperationName[240:245],
+	_OperationName[245:250],
+	_OperationName[250:255],
+	_OperationName[255:260],
 }
 
 // OperationNames returns a list of possible string values of Operation.
@@ -135,47 +184,58 @@ func OperationNames() []string {
 }
 
 var _OperationMap = map[Operation]string{
-	NOOP: _OperationName[0:4],
-	INCB: _OperationName[4:8],
-	INCW: _OperationName[8:12],
-	DECB: _OperationName[12:16],
-	DECW: _OperationName[16:20],
-	POPB: _OperationName[20:24],
-	POPW: _OperationName[24:28],
-	DUPB: _OperationName[28:32],
-	DUPW: _OperationName[32:36],
-	NXTW: _OperationName[36:40],
-	PSHB: _OperationName[40:44],
-	PSHW: _OperationName[44:48],
-	PSHA: _OperationName[48:52],
-	OUTB: _OperationName[52:56],
-	OUTW: _OperationName[56:60],
-	OUTA: _OperationName[60:64],
-	INPB: _OperationName[64:68],
-	INPW: _OperationName[68:72],
-	NAME: _OperationName[72:76],
-	PSHT: _OperationName[76:80],
-	LABL: _OperationName[80:84],
-	JUMP: _OperationName[84:88],
-	JPIF: _OperationName[88:92],
-	COND: _OperationName[92:96],
-	DATS: _OperationName[96:100],
-	IASM: _OperationName[100:104],
-	ADDB: _OperationName[104:108],
-	ADDW: _OperationName[108:112],
-	SUBB: _OperationName[112:116],
-	SUBW: _OperationName[116:120],
-	ANDB: _OperationName[120:124],
-	ANDW: _OperationName[124:128],
-	BORB: _OperationName[128:132],
-	BORW: _OperationName[132:136],
-	XORB: _OperationName[136:140],
-	XORW: _OperationName[140:144],
-	SHLB: _OperationName[144:148],
-	SHLW: _OperationName[148:152],
-	SHRB: _OperationName[152:156],
-	SHRW: _OperationName[156:160],
-	GETB: _OperationName[160:164],
+	NOOPE: _OperationName[0:5],
+	MOVRB: _OperationName[5:10],
+	MOVRW: _OperationName[10:15],
+	GETRB: _OperationName[15:20],
+	GETRW: _OperationName[20:25],
+	INCRB: _OperationName[25:30],
+	INCRW: _OperationName[30:35],
+	DECRB: _OperationName[35:40],
+	DECRW: _OperationName[40:45],
+	PUSHW: _OperationName[45:50],
+	POPRW: _OperationName[50:55],
+	LITRB: _OperationName[55:60],
+	LITRW: _OperationName[60:65],
+	OUTRB: _OperationName[65:70],
+	OUTRW: _OperationName[70:75],
+	OUTRA: _OperationName[75:80],
+	INPRB: _OperationName[80:85],
+	INPWB: _OperationName[85:90],
+	INPRA: _OperationName[90:95],
+	NAMET: _OperationName[95:100],
+	LOADT: _OperationName[100:105],
+	LABEL: _OperationName[105:110],
+	JUMPT: _OperationName[110:115],
+	JPIFT: _OperationName[115:120],
+	CONDB: _OperationName[120:125],
+	DATAS: _OperationName[125:130],
+	IASMS: _OperationName[130:135],
+	ADDRB: _OperationName[135:140],
+	ADDRW: _OperationName[140:145],
+	SUBRB: _OperationName[145:150],
+	SUBRW: _OperationName[150:155],
+	ANDRB: _OperationName[155:160],
+	ANDRW: _OperationName[160:165],
+	BORRB: _OperationName[165:170],
+	BORRW: _OperationName[170:175],
+	XORRB: _OperationName[175:180],
+	XORRW: _OperationName[180:185],
+	SHLRB: _OperationName[185:190],
+	SHLRW: _OperationName[190:195],
+	SHRRB: _OperationName[195:200],
+	SHRRW: _OperationName[200:205],
+	STORT: _OperationName[205:210],
+	GETTR: _OperationName[210:215],
+	CALLT: _OperationName[215:220],
+	RETRN: _OperationName[220:225],
+	RETIN: _OperationName[225:230],
+	RETNM: _OperationName[230:235],
+	INTRT: _OperationName[235:240],
+	NMIHT: _OperationName[240:245],
+	COPYR: _OperationName[245:250],
+	BANKI: _OperationName[250:255],
+	BATER: _OperationName[255:260],
 }
 
 // String implements the Stringer interface.
@@ -194,47 +254,58 @@ func (x Operation) IsValid() bool {
 }
 
 var _OperationValue = map[string]Operation{
-	_OperationName[0:4]:     NOOP,
-	_OperationName[4:8]:     INCB,
-	_OperationName[8:12]:    INCW,
-	_OperationName[12:16]:   DECB,
-	_OperationName[16:20]:   DECW,
-	_OperationName[20:24]:   POPB,
-	_OperationName[24:28]:   POPW,
-	_OperationName[28:32]:   DUPB,
-	_OperationName[32:36]:   DUPW,
-	_OperationName[36:40]:   NXTW,
-	_OperationName[40:44]:   PSHB,
-	_OperationName[44:48]:   PSHW,
-	_OperationName[48:52]:   PSHA,
-	_OperationName[52:56]:   OUTB,
-	_OperationName[56:60]:   OUTW,
-	_OperationName[60:64]:   OUTA,
-	_OperationName[64:68]:   INPB,
-	_OperationName[68:72]:   INPW,
-	_OperationName[72:76]:   NAME,
-	_OperationName[76:80]:   PSHT,
-	_OperationName[80:84]:   LABL,
-	_OperationName[84:88]:   JUMP,
-	_OperationName[88:92]:   JPIF,
-	_OperationName[92:96]:   COND,
-	_OperationName[96:100]:  DATS,
-	_OperationName[100:104]: IASM,
-	_OperationName[104:108]: ADDB,
-	_OperationName[108:112]: ADDW,
-	_OperationName[112:116]: SUBB,
-	_OperationName[116:120]: SUBW,
-	_OperationName[120:124]: ANDB,
-	_OperationName[124:128]: ANDW,
-	_OperationName[128:132]: BORB,
-	_OperationName[132:136]: BORW,
-	_OperationName[136:140]: XORB,
-	_OperationName[140:144]: XORW,
-	_OperationName[144:148]: SHLB,
-	_OperationName[148:152]: SHLW,
-	_OperationName[152:156]: SHRB,
-	_OperationName[156:160]: SHRW,
-	_OperationName[160:164]: GETB,
+	_OperationName[0:5]:     NOOPE,
+	_OperationName[5:10]:    MOVRB,
+	_OperationName[10:15]:   MOVRW,
+	_OperationName[15:20]:   GETRB,
+	_OperationName[20:25]:   GETRW,
+	_OperationName[25:30]:   INCRB,
+	_OperationName[30:35]:   INCRW,
+	_OperationName[35:40]:   DECRB,
+	_OperationName[40:45]:   DECRW,
+	_OperationName[45:50]:   PUSHW,
+	_OperationName[50:55]:   POPRW,
+	_OperationName[55:60]:   LITRB,
+	_OperationName[60:65]:   LITRW,
+	_OperationName[65:70]:   OUTRB,
+	_OperationName[70:75]:   OUTRW,
+	_OperationName[75:80]:   OUTRA,
+	_OperationName[80:85]:   INPRB,
+	_OperationName[85:90]:   INPWB,
+	_OperationName[90:95]:   INPRA,
+	_OperationName[95:100]:  NAMET,
+	_OperationName[100:105]: LOADT,
+	_OperationName[105:110]: LABEL,
+	_OperationName[110:115]: JUMPT,
+	_OperationName[115:120]: JPIFT,
+	_OperationName[120:125]: CONDB,
+	_OperationName[125:130]: DATAS,
+	_OperationName[130:135]: IASMS,
+	_OperationName[135:140]: ADDRB,
+	_OperationName[140:145]: ADDRW,
+	_OperationName[145:150]: SUBRB,
+	_OperationName[150:155]: SUBRW,
+	_OperationName[155:160]: ANDRB,
+	_OperationName[160:165]: ANDRW,
+	_OperationName[165:170]: BORRB,
+	_OperationName[170:175]: BORRW,
+	_OperationName[175:180]: XORRB,
+	_OperationName[180:185]: XORRW,
+	_OperationName[185:190]: SHLRB,
+	_OperationName[190:195]: SHLRW,
+	_OperationName[195:200]: SHRRB,
+	_OperationName[200:205]: SHRRW,
+	_OperationName[205:210]: STORT,
+	_OperationName[210:215]: GETTR,
+	_OperationName[215:220]: CALLT,
+	_OperationName[220:225]: RETRN,
+	_OperationName[225:230]: RETIN,
+	_OperationName[230:235]: RETNM,
+	_OperationName[235:240]: INTRT,
+	_OperationName[240:245]: NMIHT,
+	_OperationName[245:250]: COPYR,
+	_OperationName[250:255]: BANKI,
+	_OperationName[255:260]: BATER,
 }
 
 // ParseOperation attempts to convert a string to a Operation.
