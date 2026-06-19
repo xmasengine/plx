@@ -12,6 +12,7 @@ import (
 
 const (
 	// KindNone is a Kind of type None.
+	// No operand, skipped.
 	KindNone Kind = iota
 	// KindByte is a Kind of type Byte.
 	KindByte
@@ -27,11 +28,13 @@ const (
 	KindRegister
 	// KindTemporary is a Kind of type Temporary.
 	KindTemporary
+	// KindCondition is a Kind of type Condition.
+	KindCondition
 )
 
 var ErrInvalidKind = errors.New("not a valid Kind")
 
-const _KindName = "NoneByteWordIntIdentStringRegisterTemporary"
+const _KindName = "NoneByteWordIntIdentStringRegisterTemporaryCondition"
 
 var _KindMap = map[Kind]string{
 	KindNone:      _KindName[0:4],
@@ -42,6 +45,7 @@ var _KindMap = map[Kind]string{
 	KindString:    _KindName[20:26],
 	KindRegister:  _KindName[26:34],
 	KindTemporary: _KindName[34:43],
+	KindCondition: _KindName[43:52],
 }
 
 // String implements the Stringer interface.
@@ -68,6 +72,7 @@ var _KindValue = map[string]Kind{
 	_KindName[20:26]: KindString,
 	_KindName[26:34]: KindRegister,
 	_KindName[34:43]: KindTemporary,
+	_KindName[43:52]: KindCondition,
 }
 
 // ParseKind attempts to convert a string to a Kind.

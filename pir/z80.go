@@ -1,7 +1,8 @@
 package pir
 
 import "fmt"
-import "strconv"
+
+// import "strconv"
 import "io"
 import "os"
 import "bytes"
@@ -128,90 +129,194 @@ func (z *Z80) EmitProgram(p Program) error {
 
 func (z *Z80) emitInstruction(i Instruction) error {
 	switch i.Operation {
+	// no operation
 	case NOOP:
-		return z.emitNOOP(i)
+		z.emitNOOP(i)
+	// move register byte RnL -> RmL or RnH -> RmH
+	case MOVB:
+		z.emitMOVB(i)
+	// move register word RnL -> RmL or RnH -> RmH
+	case MOVW:
+		z.emitMOVW(i)
+	// increment register byte
 	case INCB:
-		return z.emitINCB(i)
+		z.emitINCB(i)
+	// increment register word
 	case INCW:
-		return z.emitINCW(i)
+		z.emitINCW(i)
+	// decrement register byte
 	case DECB:
-		return z.emitDECB(i)
+		z.emitDECB(i)
+	// decrement register word
 	case DECW:
-		return z.emitDECW(i)
-	case POPB:
-		return z.emitPOPB(i)
-	case POPW:
-		return z.emitPOPW(i)
-	case DUPB:
-		return z.emitDUPB(i)
-	case DUPW:
-		return z.emitDUPW(i)
-	case NXTW:
-		return z.emitNXTW(i)
-	case PSHB:
-		return z.emitPSHB(i)
+		z.emitDECW(i)
+	// push register word to data stack
 	case PSHW:
-		return z.emitPSHW(i)
-	case PSHA:
-		return z.emitPSHA(i)
+		z.emitPSHW(i)
+	// pop data stack word to register (there is no byte variant)
+	case POPW:
+		z.emitPOPW(i)
+	// Store literal byte in register RnL or RnH
+	case LITB:
+		z.emitLITB(i)
+	// Store literal word in register RnL
+	case LITW:
+		z.emitLITW(i)
+	// Output register byte to port [int] (constant literal).
 	case OUTB:
-		return z.emitOUTB(i)
+		z.emitOUTB(i)
+	// Output register word to port [int] (constant literal).
 	case OUTW:
-		return z.emitOUTW(i)
+		z.emitOUTW(i)
+	// Output R1 must have the address, R2 the length, output to port [int]
 	case OUTA:
-		return z.emitOUTA(i)
+		z.emitOUTA(i)
+	// Input byte from port [int] to register.
 	case INPB:
-		return z.emitINPB(i)
+		z.emitINPB(i)
+	// Input word from port [int] to register.
 	case INPW:
-		return z.emitINPW(i)
-	case NAME:
-		return z.emitNAME(i)
-	case PSHT:
-		return z.emitPSHT(i)
-	case LABL:
-		return z.emitLABL(i)
-	case JUMP:
-		return z.emitJUMP(i)
-	case JPIF:
-		return z.emitJPIF(i)
-	case COND:
-		return z.emitCOND(i)
-	case DATS:
-		return z.emitDATS(i)
-	case IASM:
-		return z.emitIASM(i)
+		z.emitINPW(i)
+	// Output R1 must have the address, R2 the length, input from port [int]
+	case INPA:
+		z.emitINPA(i)
+	// Add byte Rn to Rm and store in Rm
 	case ADDB:
-		return z.emitADDB(i)
+		z.emitADDB(i)
+	// Add word Rn to Rm and store in Rm
 	case ADDW:
-		return z.emitADDW(i)
+		z.emitADDW(i)
+	// Subtract byte Rn from Rm and store in Rm
 	case SUBB:
-		return z.emitSUBB(i)
+		z.emitSUBB(i)
+	// Subtract word Rn from Rm and store in Rm
 	case SUBW:
-		return z.emitSUBW(i)
+		z.emitSUBW(i)
+	// AND byte Rn with Rm and store in Rm
 	case ANDB:
-		return z.emitANDB(i)
+		z.emitANDB(i)
+	// AND word Rn with Rm and store in Rm
 	case ANDW:
-		return z.emitANDW(i)
+		z.emitANDW(i)
+	// Binary OR byte Rn with Rm and store in Rm
 	case BORB:
-		return z.emitBORB(i)
+		z.emitBORB(i)
+	// Binary OR word Rn with Rm and store in Rm
 	case BORW:
-		return z.emitBORW(i)
+		z.emitBORW(i)
+	// Binary XOR byte Rn with Rm and store in Rm
 	case XORB:
-		return z.emitXORB(i)
+		z.emitXORB(i)
+	// Binary XOR word Rn with Rm and store in Rm
 	case XORW:
-		return z.emitXORW(i)
+		z.emitXORW(i)
+	// Shift left by Int to byte register.
 	case SHLB:
-		return z.emitSHLB(i)
+		z.emitSHLB(i)
+	// Shift left by Int to word register.
 	case SHLW:
-		return z.emitSHLW(i)
+		z.emitSHLW(i)
+	// Shift right by Int to byte register.
 	case SHRB:
-		return z.emitSHRB(i)
+		z.emitSHRB(i)
+	// Shift right by Int to word register.
 	case SHRW:
-		return z.emitSHRW(i)
+		z.emitSHRW(i)
+	// Define jump location where the jump may "land" [ident].
+	case LAND:
+		z.emitLAND(i)
+	// Jump to tag [ident] unconditionally.
+	case JUMP:
+		z.emitJUMP(i)
+	// Jump on [cond] to tag [ident] it TOS is TRUE, pop stack.
+	case JPIF:
+		z.emitJPIF(i)
+	// Ident is one of [eq, gt, lt, etc], compare register with R1L and store in R1L.
+	case CMPB:
+		z.emitCMPB(i)
+	// Data String.
+	case DATS:
+		z.emitDATS(i)
+	// Inline assembly string.
+	case IASM:
+		z.emitIASM(i)
+	// Allocate variable with name and size.
+	case VARA:
+		z.emitVARA(i)
+	// Get byte indirectly from address pointed by Rn to Rm.
+	case GEAB:
+		z.emitGEAB(i)
+	// Get word indirectly from address pointed by Rn to Rm.
+	case GEAW:
+		z.emitGEAW(i)
+	// Store byte indirectly from address pointed by Rn from Rm.
+	case STAB:
+		z.emitSTAB(i)
+	// Store word indirectly from address pointed by Rn from Rm.
+	case STAW:
+		z.emitSTAW(i)
+	// Store byte in variable.
+	case STOB:
+		z.emitSTOB(i)
+	// Store word in variable.
+	case STOW:
+		z.emitSTOW(i)
+	// Store register to temporary Rn to Tn. There is no byte variant.
+	case STOT:
+		z.emitSTOT(i)
+	// Get named data address to register.
+	case LOAD:
+		z.emitLOAD(i)
+	// Get named data byte to register.
+	case LOAB:
+		z.emitLOAB(i)
+	// Get named data word to register.
+	case LOAW:
+		z.emitLOAW(i)
+	// Get named variable byte to register.
 	case GETB:
-		return z.emitGETB(i)
+		z.emitGETB(i)
+	// Get named variable word to register.
+	case GETW:
+		z.emitGETW(i)
+	// Get named variable address to register.
+	case GETA:
+		z.emitGETA(i)
+	// Get temporary to register. There is no byte variant.
+	case GETT:
+		z.emitGETT(i)
+	// Define callable function/sub.
+	case FUNC:
+		z.emitFUNC(i)
+	// Call tag.
+	case CALL:
+		z.emitCALL(i)
+	//  normally from a call.
+	case RETU:
+		z.emitRETU(i)
+	//  from an interrupt call.
+	case RETI:
+		z.emitRETI(i)
+	//  from an nmi call.
+	case RETN:
+		z.emitRETN(i)
+	// Set tag as an interrupt handler.
+	case SINT:
+		z.emitSINT(i)
+	// Set tag an an NMI handler.
+	case SNMI:
+		z.emitSNMI(i)
+	// Copy R2 length bytes to R1. XXX: better ideas.
+	case COPY:
+		z.emitCOPY(i)
+	// Switch active memory bank to constant int.
+	case BANK:
+		z.emitBANK(i)
+	// Switch battery backed memory on or off and store address in R.
+	case BATT:
+		z.emitBATT(i)
 	default:
-		return fmt.Errorf("unknown instrction %d", i.Operation)
+		return fmt.Errorf("unknown instruction %d", i.Operation)
 	}
 	return nil
 }
@@ -237,206 +342,188 @@ func (z *Z80) pop() error {
 	return nil
 }
 
-func (z *Z80) emitNOOP(i Instruction) error { return z.Emitf("nop") }
+// no operation
+func (z *Z80) emitNOOP(i Instruction) {}
 
-func (z *Z80) emitINCB(i Instruction) error { return z.Emitf("inc l") }
+// move register byte RnL -> RmL or RnH -> RmH
+func (z *Z80) emitMOVB(i Instruction) {}
 
-func (z *Z80) emitINCW(i Instruction) error { return z.Emitf("inc hl") }
+// move register word RnL -> RmL or RnH -> RmH
+func (z *Z80) emitMOVW(i Instruction) {}
 
-func (z *Z80) emitDECB(i Instruction) error { return z.Emitf("dec l") }
+// increment register byte
+func (z *Z80) emitINCB(i Instruction) {}
 
-func (z *Z80) emitDECW(i Instruction) error { return z.Emitf("dec hl") }
+// increment register word
+func (z *Z80) emitINCW(i Instruction) {}
 
-func (z *Z80) emitPOPB(i Instruction) error { return z.pop() }
+// decrement register byte
+func (z *Z80) emitDECB(i Instruction) {}
 
-func (z *Z80) emitPOPW(i Instruction) error { return z.pop() }
+// decrement register word
+func (z *Z80) emitDECW(i Instruction) {}
 
-func (z *Z80) emitDUPB(i Instruction) error {
-	z.push()
-	z.Emitf("ld hl,0")
-	z.Emitf("add hl,de")
-	return nil
-}
+// push register word to data stack
+func (z *Z80) emitPSHW(i Instruction) {}
 
-func (z *Z80) emitDUPW(i Instruction) error {
-	z.push()
-	// Need to set HL to the same as DE
-	z.Emitf("ld hl,0")
-	z.Emitf("add hl,de")
-	return nil
-}
+// pop data stack word to register (there is no byte variant)
+func (z *Z80) emitPOPW(i Instruction) {}
 
-func (z *Z80) emitNXTW(i Instruction) error {
-	z.push()
-	return nil
-}
+// Store literal byte in register RnL or RnH
+func (z *Z80) emitLITB(i Instruction) {}
 
-func (z *Z80) emitPSHB(i Instruction) error {
-	z.push()
-	z.Emitf("ld h,0")
-	return z.Emitf("ld l,%d", i.Byte)
-}
+// Store literal word in register RnL
+func (z *Z80) emitLITW(i Instruction) {}
 
-func (z *Z80) emitPSHW(i Instruction) error { z.push(); return z.Emitf("ld hl,%d", i.Word) }
-func (z *Z80) emitPSHA(i Instruction) error { z.push(); return z.Emitf("ld hl,%s", z.pre(i.Ident)) }
+// Output register byte to port [int] (constant literal).
+func (z *Z80) emitOUTB(i Instruction) {}
 
-func (z *Z80) emitOUTB(i Instruction) error {
-	z.Emitf("ld a, l")
-	z.Emitf("out (%#x), a", i.Int)
-	return z.pop()
-}
+// Output register word to port [int] (constant literal).
+func (z *Z80) emitOUTW(i Instruction) {}
 
-func (z *Z80) emitOUTW(i Instruction) error {
-	z.Emitf("ld a, l")
-	z.Emitf("out (%#x), a", i.Int)
-	z.Emitf("ld a, h")
-	z.Emitf("out (%#x), a", i.Int)
-	return z.pop()
-}
+// Output R1 must have the address, R2 the length, output to port [int]
+func (z *Z80) emitOUTA(i Instruction) {}
 
-func (z *Z80) emitOUTA(i Instruction) error {
-	// LD should be the address, TOS, BC the count with the count in B.
-	z.Emitf("ld b, e")
-	z.Emitf("ld c, %#x", i.Int)
-	z.Emitf("otir")
-	z.pop()
-	z.pop()
-	return nil
-}
+// Input byte from port [int] to register.
+func (z *Z80) emitINPB(i Instruction) {}
 
-func (z *Z80) emitINPB(i Instruction) error {
-	z.push()
-	z.Emitf("in l,(%x)", i.Int)
-	return nil
-}
+// Input word from port [int] to register.
+func (z *Z80) emitINPW(i Instruction) {}
 
-func (z *Z80) emitINPW(i Instruction) error {
-	z.push()
-	z.Emitf("in l,(%x)", i.Int)
-	z.Emitf("in h,(%x)", i.Int)
-	return nil
-}
+// Output R1 must have the address, R2 the length, input from port [int]
+func (z *Z80) emitINPA(i Instruction) {}
 
-func (z *Z80) emitNAME(i Instruction) error {
-	z.Emitf("%s:", z.pre(i.Ident))
-	return nil
-}
+// Add byte Rn to Rm and store in Rm
+func (z *Z80) emitADDB(i Instruction) {}
 
-func (z *Z80) emitPSHT(i Instruction) error {
-	z.push()
-	z.Emitf("ld hl,%s", z.pre(i.Ident))
-	return nil
-}
+// Add word Rn to Rm and store in Rm
+func (z *Z80) emitADDW(i Instruction) {}
 
-func (z *Z80) emitLABL(i Instruction) error {
-	z.Emitf("%s:", z.pre(i.Ident))
-	return nil
-}
+// Subtract byte Rn from Rm and store in Rm
+func (z *Z80) emitSUBB(i Instruction) {}
 
-func (z *Z80) emitJUMP(i Instruction) error {
-	z.Emitf("jmp %s", z.pre(i.Ident))
-	return nil
-}
+// Subtract word Rn from Rm and store in Rm
+func (z *Z80) emitSUBW(i Instruction) {}
 
-func (z *Z80) emitJPIF(i Instruction) error {
-	z.Emitf("ld a,l")
-	z.pop()
-	z.Emitf("cp 0")
-	z.Emitf("jp nz, %s", z.pre(i.Ident))
-	return nil
-}
+// AND byte Rn with Rm and store in Rm
+func (z *Z80) emitANDB(i Instruction) {}
 
-func (z *Z80) emitCOND(i Instruction) error {
-	trueLabel := z.label()
-	endLabel := z.label()
-	// todo: check conditions, 16 bits
-	z.Emitf("ld a,l")
-	z.pop()
-	z.Emitf("cp l") // compare
-	z.Emitf("jp %s,%s", i.Ident, trueLabel)
-	z.Emitf("ld hl,0") // false branch
-	z.Emitf("jmp %s", endLabel)
-	z.Emitf("%s:\tld hl,1", trueLabel) // true branch
-	z.Emitf("%s:\tnop", endLabel)
-	return nil
-}
+// AND word Rn with Rm and store in Rm
+func (z *Z80) emitANDW(i Instruction) {}
 
-func (z *Z80) emitDATS(i Instruction) error {
-	z.Emitf("ds %s", strconv.Quote(i.Str))
-	return nil
-}
+// Binary OR byte Rn with Rm and store in Rm
+func (z *Z80) emitBORB(i Instruction) {}
 
-func (z *Z80) emitIASM(i Instruction) error {
-	z.Emitf("\n%s\n", i.Str)
-	return nil
-}
+// Binary OR word Rn with Rm and store in Rm
+func (z *Z80) emitBORW(i Instruction) {}
 
-func (z *Z80) emitADDB(i Instruction) error {
-	z.Emitf("ld a,l")
-	z.pop()
-	z.Emitf("add a,l")
-	z.Emitf("ld l,a")
-	z.Emitf("ld h,0")
-	// no need to do anything else, l has now the result.
-	return nil
-}
+// Binary XOR byte Rn with Rm and store in Rm
+func (z *Z80) emitXORB(i Instruction) {}
 
-func (z *Z80) emitADDW(i Instruction) error {
-	z.Emitf("add hl,de") // TOS + NEXT -> TOS
-	z.Emitf("pop de")    // get next of stack, drop de
-	// no need to do anything else, hl has now the result.
-	return nil
-}
+// Binary XOR word Rn with Rm and store in Rm
+func (z *Z80) emitXORW(i Instruction) {}
 
-func (z *Z80) emitSUBB(i Instruction) error {
-	return nil
-	z.Emitf("ld a,l")
-	z.pop()
-	z.Emitf("sub a,l")
-	z.Emitf("ld l,a")
-	z.Emitf("ld h,0")
-	// no need to do anything else, l has now the result.
-	return nil
-}
+// Shift left by Int to byte register.
+func (z *Z80) emitSHLB(i Instruction) {}
 
-func (z *Z80) emitSUBW(i Instruction) error {
-	z.Emitf("sbc hl,de") // TOS - NEXT -> TOS
-	z.Emitf("pop de")    // get next of stack, drop de
-	// no need to do anything else, hl has now the result.
-	return nil
-}
+// Shift left by Int to word register.
+func (z *Z80) emitSHLW(i Instruction) {}
 
-func (z *Z80) emitANDB(i Instruction) error {
-	z.Emitf("ld a,l")
-	z.pop()
-	z.Emitf("and a,l")
-	z.Emitf("ld l,a")
-	z.Emitf("ld h,0")
-	// no need to do anything else, l has now the result.
-	return nil
-}
+// Shift right by Int to byte register.
+func (z *Z80) emitSHRB(i Instruction) {}
 
-func (z *Z80) emitANDW(i Instruction) error { return nil }
+// Shift right by Int to word register.
+func (z *Z80) emitSHRW(i Instruction) {}
 
-func (z *Z80) emitBORB(i Instruction) error { return nil }
+// Define jump location where the jump may "land" [ident].
+func (z *Z80) emitLAND(i Instruction) {}
 
-func (z *Z80) emitBORW(i Instruction) error { return nil }
+// Jump to tag [ident] unconditionally.
+func (z *Z80) emitJUMP(i Instruction) {}
 
-func (z *Z80) emitXORB(i Instruction) error { return nil }
+// Jump on [cond] to tag [ident] it TOS is TRUE, pop stack.
+func (z *Z80) emitJPIF(i Instruction) {}
 
-func (z *Z80) emitXORW(i Instruction) error { return nil }
+// Ident is one of [eq, gt, lt, etc], compare register with R1L and store in R1L.
+func (z *Z80) emitCMPB(i Instruction) {}
 
-func (z *Z80) emitSHLB(i Instruction) error { return nil }
+// Data String.
+func (z *Z80) emitDATS(i Instruction) {}
 
-func (z *Z80) emitSHLW(i Instruction) error { return nil }
+// Inline assembly string.
+func (z *Z80) emitIASM(i Instruction) {}
 
-func (z *Z80) emitSHRB(i Instruction) error { return nil }
+// Allocate variable with name and size.
+func (z *Z80) emitVARA(i Instruction) {}
 
-func (z *Z80) emitSHRW(i Instruction) error { return nil }
+// Get byte indirectly from address pointed by Rn to Rm.
+func (z *Z80) emitGEAB(i Instruction) {}
 
-func (z *Z80) emitGETB(i Instruction) error {
-	z.Emitf("ld l,(hl)")
-	z.Emitf("ld h,0")
-	// no need to do anything else, l has now the result. hl was the address, now the value.
-	return nil
-}
+// Get word indirectly from address pointed by Rn to Rm.
+func (z *Z80) emitGEAW(i Instruction) {}
+
+// Store byte indirectly from address pointed by Rn from Rm.
+func (z *Z80) emitSTAB(i Instruction) {}
+
+// Store word indirectly from address pointed by Rn from Rm.
+func (z *Z80) emitSTAW(i Instruction) {}
+
+// Store byte in variable.
+func (z *Z80) emitSTOB(i Instruction) {}
+
+// Store word in variable.
+func (z *Z80) emitSTOW(i Instruction) {}
+
+// Store register to temporary Rn to Tn. There is no byte variant.
+func (z *Z80) emitSTOT(i Instruction) {}
+
+// Get named data address to register.
+func (z *Z80) emitLOAD(i Instruction) {}
+
+// Get named data byte to register.
+func (z *Z80) emitLOAB(i Instruction) {}
+
+// Get named data word to register.
+func (z *Z80) emitLOAW(i Instruction) {}
+
+// Get named variable byte to register.
+func (z *Z80) emitGETB(i Instruction) {}
+
+// Get named variable word to register.
+func (z *Z80) emitGETW(i Instruction) {}
+
+// Get named variable address to register.
+func (z *Z80) emitGETA(i Instruction) {}
+
+// Get temporary to register. There is no byte variant.
+func (z *Z80) emitGETT(i Instruction) {}
+
+// Define callable function/sub.
+func (z *Z80) emitFUNC(i Instruction) {}
+
+// Call tag.
+func (z *Z80) emitCALL(i Instruction) {}
+
+// Return normally from a call.
+func (z *Z80) emitRETU(i Instruction) {}
+
+// Return from an interrupt call.
+func (z *Z80) emitRETI(i Instruction) {}
+
+// Return from an nmi call.
+func (z *Z80) emitRETN(i Instruction) {}
+
+// Set tag as an interrupt handler.
+func (z *Z80) emitSINT(i Instruction) {}
+
+// Set tag an an NMI handler.
+func (z *Z80) emitSNMI(i Instruction) {}
+
+// Copy R2 length bytes to R1. XXX: better ideas.
+func (z *Z80) emitCOPY(i Instruction) {}
+
+// Switch active memory bank to constant int.
+func (z *Z80) emitBANK(i Instruction) {}
+
+// Switch battery backed memory on or off and store address in R.
+func (z *Z80) emitBATT(i Instruction) {}

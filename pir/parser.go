@@ -103,68 +103,101 @@ func (ins *Instruction) scan(scan *scanner.Scanner) error {
 		return scanError(scan, err.Error(), tok)
 	}
 
-	switch ins.Operation.Operand() {
-	case OperandNone:
-		break
-	case OperandByte:
-		tok, text, err := accept(scan, scanner.Char, scanner.Int)
-		if err != nil {
-			return err
-		}
-		if tok == scanner.Char {
-			r, _, _, err := strconv.UnquoteChar(text[1:len(text)], '\'')
+	kinds := ins.Operation.OperandKinds()
+	for _, kind := range kinds {
+		op := Operand{}
+		switch kind {
+		case KindNone:
+			continue
+		case KindByte:
+			tok, text, err := accept(scan, scanner.Char, scanner.Int)
+			if err != nil {
+				return err
+			}
+			if tok == scanner.Char {
+				r, _, _, err := strconv.UnquoteChar(text[1:len(text)], '\'')
+				if err != nil {
+					return scanError(scan, err.Error(), tok)
+				}
+				op.Byte = byte(r)
+			} else {
+				num, err := strconv.ParseUint(text, 0, 8)
+				if err != nil {
+					return scanError(scan, err.Error(), tok)
+				}
+				op.Byte = uint8(num)
+			}
+		case KindWord:
+			tok, text, err := accept(scan, scanner.Int)
+			if err != nil {
+				return err
+			}
+			num, err := strconv.ParseUint(text, 0, 16)
 			if err != nil {
 				return scanError(scan, err.Error(), tok)
 			}
-			ins.Byte = byte(r)
-		} else {
-			num, err := strconv.ParseUint(text, 0, 8)
+			op.Word = uint16(num)
+		case KindInt:
+			tok, text, err := accept(scan, scanner.Int)
+			if err != nil {
+				return err
+			}
+			num, err := strconv.ParseInt(text, 0, 0)
 			if err != nil {
 				return scanError(scan, err.Error(), tok)
 			}
-			ins.Byte = uint8(num)
-		}
-	case OperandWord:
-		tok, text, err := accept(scan, scanner.Int)
-		if err != nil {
-			return err
-		}
-		num, err := strconv.ParseUint(text, 0, 16)
-		if err != nil {
-			return scanError(scan, err.Error(), tok)
-		}
-		ins.Word = uint16(num)
-	case OperandInt:
-		tok, text, err := accept(scan, scanner.Int)
-		if err != nil {
-			return err
-		}
-		num, err := strconv.ParseInt(text, 0, 0)
-		if err != nil {
-			return scanError(scan, err.Error(), tok)
-		}
-		ins.Int = int(num)
+			op.Int = int(num)
 
-	case OperandIdent:
-		_, text, err := accept(scan, scanner.Ident)
-		if err != nil {
-			return err
-		}
-		ins.Ident = text
+		case KindIdent:
+			_, text, err := accept(scan, scanner.Ident)
+			if err != nil {
+				return err
+			}
+			op.Ident = text
+		case KindRegister:
+			_, text, err := accept(scan, scanner.Ident)
+			if err != nil {
+				return err
+			}
+			err = op.Register.UnmarshalText([]byte(text))
+			if err != nil {
+				return err
+			}
 
-	case OperandString:
-		tok, text, err := accept(scan, scanner.String, scanner.RawString)
-		if err != nil {
-			return err
-		}
-		str, err := strconv.Unquote(text)
-		if err != nil {
-			scanError(scan, err.Error(), tok)
-		}
-		ins.Str = str
+		case KindTemporary:
+			_, text, err := accept(scan, scanner.Ident)
+			if err != nil {
+				return err
+			}
+			err = op.Temporary.UnmarshalText([]byte(text))
+			if err != nil {
+				return err
+			}
+		case KindCondition:
+			_, text, err := accept(scan, scanner.Ident)
+			if err != nil {
+				return err
+			}
+			err = op.Condition.UnmarshalText([]byte(text))
+			if err != nil {
+				return err
+			}
 
-	default:
-		return fmt.Errorf("%s:%s", scan.Position, "unknown operand type")
+		case KindString:
+			tok, text, err := accept(scan, scanner.String, scanner.RawString)
+			if err != nil {
+				return err
+			}
+			str, err := strconv.Unquote(text)
+			if err != nil {
+				scanError(scan, err.Error(), tok)
+			}
+			op.Str = str
+
+		default:
+			return fmt.Errorf("%s:%s", scan.Position, "unknown operand type")
+		}
+		ins.Operands = append(ins.Operands, op)
 	}
 	_, _, err = accept(scan, ';', '\n')
 

@@ -11,169 +11,304 @@ import (
 )
 
 const (
+	// Zero condition
+	ZERO Condition = iota
+	// Not zero condition
+	NOZE
+	// Less than condition
+	LEST
+	// Greater than condition
+	GRTT
+	// Less than condition
+	LESE
+	// Greater than condition
+	GETE
+	// Equal condition
+	EQUA
+)
+
+var ErrInvalidCondition = fmt.Errorf("not a valid Condition, try [%s]", strings.Join(_ConditionNames, ", "))
+
+const _ConditionName = "ZERONOZELESTGRTTLESEGETEEQUA"
+
+var _ConditionNames = []string{
+	_ConditionName[0:4],
+	_ConditionName[4:8],
+	_ConditionName[8:12],
+	_ConditionName[12:16],
+	_ConditionName[16:20],
+	_ConditionName[20:24],
+	_ConditionName[24:28],
+}
+
+// ConditionNames returns a list of possible string values of Condition.
+func ConditionNames() []string {
+	tmp := make([]string, len(_ConditionNames))
+	copy(tmp, _ConditionNames)
+	return tmp
+}
+
+var _ConditionMap = map[Condition]string{
+	ZERO: _ConditionName[0:4],
+	NOZE: _ConditionName[4:8],
+	LEST: _ConditionName[8:12],
+	GRTT: _ConditionName[12:16],
+	LESE: _ConditionName[16:20],
+	GETE: _ConditionName[20:24],
+	EQUA: _ConditionName[24:28],
+}
+
+// String implements the Stringer interface.
+func (x Condition) String() string {
+	if str, ok := _ConditionMap[x]; ok {
+		return str
+	}
+	return fmt.Sprintf("Condition(%d)", x)
+}
+
+// IsValid provides a quick way to determine if the typed value is
+// part of the allowed enumerated values
+func (x Condition) IsValid() bool {
+	_, ok := _ConditionMap[x]
+	return ok
+}
+
+var _ConditionValue = map[string]Condition{
+	_ConditionName[0:4]:   ZERO,
+	_ConditionName[4:8]:   NOZE,
+	_ConditionName[8:12]:  LEST,
+	_ConditionName[12:16]: GRTT,
+	_ConditionName[16:20]: LESE,
+	_ConditionName[20:24]: GETE,
+	_ConditionName[24:28]: EQUA,
+}
+
+// ParseCondition attempts to convert a string to a Condition.
+func ParseCondition(name string) (Condition, error) {
+	if x, ok := _ConditionValue[name]; ok {
+		return x, nil
+	}
+	return Condition(0), fmt.Errorf("%s is %w", name, ErrInvalidCondition)
+}
+
+// MarshalText implements the text marshaller method.
+func (x Condition) MarshalText() ([]byte, error) {
+	return []byte(x.String()), nil
+}
+
+// UnmarshalText implements the text unmarshaller method.
+func (x *Condition) UnmarshalText(text []byte) error {
+	name := string(text)
+	tmp, err := ParseCondition(name)
+	if err != nil {
+		return err
+	}
+	*x = tmp
+	return nil
+}
+
+// AppendText appends the textual representation of itself to the end of b
+// (allocating a larger slice if necessary) and returns the updated slice.
+//
+// Implementations must not retain b, nor mutate any bytes within b[:len(b)].
+func (x *Condition) AppendText(b []byte) ([]byte, error) {
+	return append(b, x.String()...), nil
+}
+
+const (
 	// no operation
-	NOOPE Operation = iota
+	NOOP Operation = iota
 	// move register byte RnL -> RmL or RnH -> RmH
-	MOVRB
+	MOVB
 	// move register word RnL -> RmL or RnH -> RmH
-	MOVRW
-	// Get byte from address pointed by Rn to Rm
-	GETRB
-	// Get word from address pointed by Rn to Rm
-	GETRW
+	MOVW
 	// increment register byte
-	INCRB
+	INCB
 	// increment register word
-	INCRW
+	INCW
 	// decrement register byte
-	DECRB
+	DECB
 	// decrement register word
-	DECRW
+	DECW
 	// push register word to data stack
-	PUSHW
+	PSHW
 	// pop data stack word to register (there is no byte variant)
-	POPRW
+	POPW
 	// Store literal byte in register RnL or RnH
-	LITRB
+	LITB
 	// Store literal word in register RnL
-	LITRW
+	LITW
 	// Output register byte to port [int] (constant literal).
-	OUTRB
+	OUTB
 	// Output register word to port [int] (constant literal).
-	OUTRW
+	OUTW
 	// Output R1 must have the address, R2 the length, output to port [int]
-	OUTRA
+	OUTA
 	// Input byte from port [int] to register.
-	INPRB
+	INPB
 	// Input word from port [int] to register.
-	INPWB
+	INPW
 	// Output R1 must have the address, R2 the length, input from port [int]
-	INPRA
-	// Name tag of next DATS, VARI, FUNC, etc instruction [ident].
-	NAMET
-	// Load tag address into register.
-	LOADT
-	// Define jump location [ident].
-	LABEL
-	// Jump to tag [ident] unconditionally.
-	JUMPT
-	// Jump on [cond] to tag [ident] it TOS is TRUE, pop stack.
-	JPIFT
-	// Ident is one of [eq, gt, lt, etc], compare register with R1L and store in R1L.
-	CONDB
-	// Data String.
-	DATAS
-	// Inline assembly string.
-	IASMS
+	INPA
 	// Add byte Rn to Rm and store in Rm
-	ADDRB
+	ADDB
 	// Add word Rn to Rm and store in Rm
-	ADDRW
+	ADDW
 	// Subtract byte Rn from Rm and store in Rm
-	SUBRB
+	SUBB
 	// Subtract word Rn from Rm and store in Rm
-	SUBRW
+	SUBW
 	// AND byte Rn with Rm and store in Rm
-	ANDRB
+	ANDB
 	// AND word Rn with Rm and store in Rm
-	ANDRW
+	ANDW
 	// Binary OR byte Rn with Rm and store in Rm
-	BORRB
+	BORB
 	// Binary OR word Rn with Rm and store in Rm
-	BORRW
+	BORW
 	// Binary XOR byte Rn with Rm and store in Rm
-	XORRB
+	XORB
 	// Binary XOR word Rn with Rm and store in Rm
-	XORRW
+	XORW
 	// Shift left by Int to byte register.
-	SHLRB
+	SHLB
 	// Shift left by Int to word register.
-	SHLRW
+	SHLW
 	// Shift right by Int to byte register.
-	SHRRB
+	SHRB
 	// Shift right by Int to word register.
-	SHRRW
+	SHRW
+	// Define jump location where the jump may "land" [ident].
+	LAND
+	// Jump to tag [ident] unconditionally.
+	JUMP
+	// Jump on [cond] to tag [ident] it TOS is TRUE, pop stack.
+	JPIF
+	// Ident is one of [eq, gt, lt, etc], compare register with R1L and store in R1L.
+	CMPB
+	// Data String.
+	DATS
+	// Inline assembly string.
+	IASM
+	// Allocate variable with name and size.
+	VARA
+	// Get byte indirectly from address pointed by Rn to Rm.
+	GEAB
+	// Get word indirectly from address pointed by Rn to Rm.
+	GEAW
+	// Store byte indirectly from address pointed by Rn from Rm.
+	STAB
+	// Store word indirectly from address pointed by Rn from Rm.
+	STAW
+	// Store byte in variable.
+	STOB
+	// Store word in variable.
+	STOW
 	// Store register to temporary Rn to Tn. There is no byte variant.
-	STORT
+	STOT
+	// Get named data address to register.
+	LOAD
+	// Get named data byte to register.
+	LOAB
+	// Get named data word to register.
+	LOAW
+	// Get named variable byte to register.
+	GETB
+	// Get named variable word to register.
+	GETW
+	// Get named variable address to register.
+	GETA
 	// Get temporary to register. There is no byte variant.
-	GETTR
+	GETT
+	// Define callable function/sub.
+	FUNC
 	// Call tag.
-	CALLT
+	CALL
 	// Return normally from a call.
-	RETRN
+	RETU
 	// Return from an interrupt call.
-	RETIN
+	RETI
 	// Return from an nmi call.
-	RETNM
+	RETN
 	// Set tag as an interrupt handler.
-	INTRT
+	SINT
 	// Set tag an an NMI handler.
-	NMIHT
+	SNMI
 	// Copy R2 length bytes to R1. XXX: better ideas.
-	COPYR
+	COPY
 	// Switch active memory bank to constant int.
-	BANKI
+	BANK
 	// Switch battery backed memory on or off and store address in R.
-	BATER
+	BATT
 )
 
 var ErrInvalidOperation = fmt.Errorf("not a valid Operation, try [%s]", strings.Join(_OperationNames, ", "))
 
-const _OperationName = "NOOPEMOVRBMOVRWGETRBGETRWINCRBINCRWDECRBDECRWPUSHWPOPRWLITRBLITRWOUTRBOUTRWOUTRAINPRBINPWBINPRANAMETLOADTLABELJUMPTJPIFTCONDBDATASIASMSADDRBADDRWSUBRBSUBRWANDRBANDRWBORRBBORRWXORRBXORRWSHLRBSHLRWSHRRBSHRRWSTORTGETTRCALLTRETRNRETINRETNMINTRTNMIHTCOPYRBANKIBATER"
+const _OperationName = "NOOPMOVBMOVWINCBINCWDECBDECWPSHWPOPWLITBLITWOUTBOUTWOUTAINPBINPWINPAADDBADDWSUBBSUBWANDBANDWBORBBORWXORBXORWSHLBSHLWSHRBSHRWLANDJUMPJPIFCMPBDATSIASMVARAGEABGEAWSTABSTAWSTOBSTOWSTOTLOADLOABLOAWGETBGETWGETAGETTFUNCCALLRETURETIRETNSINTSNMICOPYBANKBATT"
 
 var _OperationNames = []string{
-	_OperationName[0:5],
-	_OperationName[5:10],
-	_OperationName[10:15],
-	_OperationName[15:20],
-	_OperationName[20:25],
-	_OperationName[25:30],
-	_OperationName[30:35],
-	_OperationName[35:40],
-	_OperationName[40:45],
-	_OperationName[45:50],
-	_OperationName[50:55],
-	_OperationName[55:60],
-	_OperationName[60:65],
-	_OperationName[65:70],
-	_OperationName[70:75],
-	_OperationName[75:80],
-	_OperationName[80:85],
-	_OperationName[85:90],
-	_OperationName[90:95],
-	_OperationName[95:100],
-	_OperationName[100:105],
-	_OperationName[105:110],
-	_OperationName[110:115],
-	_OperationName[115:120],
-	_OperationName[120:125],
-	_OperationName[125:130],
-	_OperationName[130:135],
-	_OperationName[135:140],
-	_OperationName[140:145],
-	_OperationName[145:150],
-	_OperationName[150:155],
-	_OperationName[155:160],
-	_OperationName[160:165],
-	_OperationName[165:170],
-	_OperationName[170:175],
-	_OperationName[175:180],
-	_OperationName[180:185],
-	_OperationName[185:190],
-	_OperationName[190:195],
-	_OperationName[195:200],
-	_OperationName[200:205],
-	_OperationName[205:210],
-	_OperationName[210:215],
-	_OperationName[215:220],
-	_OperationName[220:225],
-	_OperationName[225:230],
-	_OperationName[230:235],
-	_OperationName[235:240],
-	_OperationName[240:245],
-	_OperationName[245:250],
-	_OperationName[250:255],
-	_OperationName[255:260],
+	_OperationName[0:4],
+	_OperationName[4:8],
+	_OperationName[8:12],
+	_OperationName[12:16],
+	_OperationName[16:20],
+	_OperationName[20:24],
+	_OperationName[24:28],
+	_OperationName[28:32],
+	_OperationName[32:36],
+	_OperationName[36:40],
+	_OperationName[40:44],
+	_OperationName[44:48],
+	_OperationName[48:52],
+	_OperationName[52:56],
+	_OperationName[56:60],
+	_OperationName[60:64],
+	_OperationName[64:68],
+	_OperationName[68:72],
+	_OperationName[72:76],
+	_OperationName[76:80],
+	_OperationName[80:84],
+	_OperationName[84:88],
+	_OperationName[88:92],
+	_OperationName[92:96],
+	_OperationName[96:100],
+	_OperationName[100:104],
+	_OperationName[104:108],
+	_OperationName[108:112],
+	_OperationName[112:116],
+	_OperationName[116:120],
+	_OperationName[120:124],
+	_OperationName[124:128],
+	_OperationName[128:132],
+	_OperationName[132:136],
+	_OperationName[136:140],
+	_OperationName[140:144],
+	_OperationName[144:148],
+	_OperationName[148:152],
+	_OperationName[152:156],
+	_OperationName[156:160],
+	_OperationName[160:164],
+	_OperationName[164:168],
+	_OperationName[168:172],
+	_OperationName[172:176],
+	_OperationName[176:180],
+	_OperationName[180:184],
+	_OperationName[184:188],
+	_OperationName[188:192],
+	_OperationName[192:196],
+	_OperationName[196:200],
+	_OperationName[200:204],
+	_OperationName[204:208],
+	_OperationName[208:212],
+	_OperationName[212:216],
+	_OperationName[216:220],
+	_OperationName[220:224],
+	_OperationName[224:228],
+	_OperationName[228:232],
+	_OperationName[232:236],
+	_OperationName[236:240],
+	_OperationName[240:244],
+	_OperationName[244:248],
 }
 
 // OperationNames returns a list of possible string values of Operation.
@@ -184,58 +319,68 @@ func OperationNames() []string {
 }
 
 var _OperationMap = map[Operation]string{
-	NOOPE: _OperationName[0:5],
-	MOVRB: _OperationName[5:10],
-	MOVRW: _OperationName[10:15],
-	GETRB: _OperationName[15:20],
-	GETRW: _OperationName[20:25],
-	INCRB: _OperationName[25:30],
-	INCRW: _OperationName[30:35],
-	DECRB: _OperationName[35:40],
-	DECRW: _OperationName[40:45],
-	PUSHW: _OperationName[45:50],
-	POPRW: _OperationName[50:55],
-	LITRB: _OperationName[55:60],
-	LITRW: _OperationName[60:65],
-	OUTRB: _OperationName[65:70],
-	OUTRW: _OperationName[70:75],
-	OUTRA: _OperationName[75:80],
-	INPRB: _OperationName[80:85],
-	INPWB: _OperationName[85:90],
-	INPRA: _OperationName[90:95],
-	NAMET: _OperationName[95:100],
-	LOADT: _OperationName[100:105],
-	LABEL: _OperationName[105:110],
-	JUMPT: _OperationName[110:115],
-	JPIFT: _OperationName[115:120],
-	CONDB: _OperationName[120:125],
-	DATAS: _OperationName[125:130],
-	IASMS: _OperationName[130:135],
-	ADDRB: _OperationName[135:140],
-	ADDRW: _OperationName[140:145],
-	SUBRB: _OperationName[145:150],
-	SUBRW: _OperationName[150:155],
-	ANDRB: _OperationName[155:160],
-	ANDRW: _OperationName[160:165],
-	BORRB: _OperationName[165:170],
-	BORRW: _OperationName[170:175],
-	XORRB: _OperationName[175:180],
-	XORRW: _OperationName[180:185],
-	SHLRB: _OperationName[185:190],
-	SHLRW: _OperationName[190:195],
-	SHRRB: _OperationName[195:200],
-	SHRRW: _OperationName[200:205],
-	STORT: _OperationName[205:210],
-	GETTR: _OperationName[210:215],
-	CALLT: _OperationName[215:220],
-	RETRN: _OperationName[220:225],
-	RETIN: _OperationName[225:230],
-	RETNM: _OperationName[230:235],
-	INTRT: _OperationName[235:240],
-	NMIHT: _OperationName[240:245],
-	COPYR: _OperationName[245:250],
-	BANKI: _OperationName[250:255],
-	BATER: _OperationName[255:260],
+	NOOP: _OperationName[0:4],
+	MOVB: _OperationName[4:8],
+	MOVW: _OperationName[8:12],
+	INCB: _OperationName[12:16],
+	INCW: _OperationName[16:20],
+	DECB: _OperationName[20:24],
+	DECW: _OperationName[24:28],
+	PSHW: _OperationName[28:32],
+	POPW: _OperationName[32:36],
+	LITB: _OperationName[36:40],
+	LITW: _OperationName[40:44],
+	OUTB: _OperationName[44:48],
+	OUTW: _OperationName[48:52],
+	OUTA: _OperationName[52:56],
+	INPB: _OperationName[56:60],
+	INPW: _OperationName[60:64],
+	INPA: _OperationName[64:68],
+	ADDB: _OperationName[68:72],
+	ADDW: _OperationName[72:76],
+	SUBB: _OperationName[76:80],
+	SUBW: _OperationName[80:84],
+	ANDB: _OperationName[84:88],
+	ANDW: _OperationName[88:92],
+	BORB: _OperationName[92:96],
+	BORW: _OperationName[96:100],
+	XORB: _OperationName[100:104],
+	XORW: _OperationName[104:108],
+	SHLB: _OperationName[108:112],
+	SHLW: _OperationName[112:116],
+	SHRB: _OperationName[116:120],
+	SHRW: _OperationName[120:124],
+	LAND: _OperationName[124:128],
+	JUMP: _OperationName[128:132],
+	JPIF: _OperationName[132:136],
+	CMPB: _OperationName[136:140],
+	DATS: _OperationName[140:144],
+	IASM: _OperationName[144:148],
+	VARA: _OperationName[148:152],
+	GEAB: _OperationName[152:156],
+	GEAW: _OperationName[156:160],
+	STAB: _OperationName[160:164],
+	STAW: _OperationName[164:168],
+	STOB: _OperationName[168:172],
+	STOW: _OperationName[172:176],
+	STOT: _OperationName[176:180],
+	LOAD: _OperationName[180:184],
+	LOAB: _OperationName[184:188],
+	LOAW: _OperationName[188:192],
+	GETB: _OperationName[192:196],
+	GETW: _OperationName[196:200],
+	GETA: _OperationName[200:204],
+	GETT: _OperationName[204:208],
+	FUNC: _OperationName[208:212],
+	CALL: _OperationName[212:216],
+	RETU: _OperationName[216:220],
+	RETI: _OperationName[220:224],
+	RETN: _OperationName[224:228],
+	SINT: _OperationName[228:232],
+	SNMI: _OperationName[232:236],
+	COPY: _OperationName[236:240],
+	BANK: _OperationName[240:244],
+	BATT: _OperationName[244:248],
 }
 
 // String implements the Stringer interface.
@@ -254,58 +399,68 @@ func (x Operation) IsValid() bool {
 }
 
 var _OperationValue = map[string]Operation{
-	_OperationName[0:5]:     NOOPE,
-	_OperationName[5:10]:    MOVRB,
-	_OperationName[10:15]:   MOVRW,
-	_OperationName[15:20]:   GETRB,
-	_OperationName[20:25]:   GETRW,
-	_OperationName[25:30]:   INCRB,
-	_OperationName[30:35]:   INCRW,
-	_OperationName[35:40]:   DECRB,
-	_OperationName[40:45]:   DECRW,
-	_OperationName[45:50]:   PUSHW,
-	_OperationName[50:55]:   POPRW,
-	_OperationName[55:60]:   LITRB,
-	_OperationName[60:65]:   LITRW,
-	_OperationName[65:70]:   OUTRB,
-	_OperationName[70:75]:   OUTRW,
-	_OperationName[75:80]:   OUTRA,
-	_OperationName[80:85]:   INPRB,
-	_OperationName[85:90]:   INPWB,
-	_OperationName[90:95]:   INPRA,
-	_OperationName[95:100]:  NAMET,
-	_OperationName[100:105]: LOADT,
-	_OperationName[105:110]: LABEL,
-	_OperationName[110:115]: JUMPT,
-	_OperationName[115:120]: JPIFT,
-	_OperationName[120:125]: CONDB,
-	_OperationName[125:130]: DATAS,
-	_OperationName[130:135]: IASMS,
-	_OperationName[135:140]: ADDRB,
-	_OperationName[140:145]: ADDRW,
-	_OperationName[145:150]: SUBRB,
-	_OperationName[150:155]: SUBRW,
-	_OperationName[155:160]: ANDRB,
-	_OperationName[160:165]: ANDRW,
-	_OperationName[165:170]: BORRB,
-	_OperationName[170:175]: BORRW,
-	_OperationName[175:180]: XORRB,
-	_OperationName[180:185]: XORRW,
-	_OperationName[185:190]: SHLRB,
-	_OperationName[190:195]: SHLRW,
-	_OperationName[195:200]: SHRRB,
-	_OperationName[200:205]: SHRRW,
-	_OperationName[205:210]: STORT,
-	_OperationName[210:215]: GETTR,
-	_OperationName[215:220]: CALLT,
-	_OperationName[220:225]: RETRN,
-	_OperationName[225:230]: RETIN,
-	_OperationName[230:235]: RETNM,
-	_OperationName[235:240]: INTRT,
-	_OperationName[240:245]: NMIHT,
-	_OperationName[245:250]: COPYR,
-	_OperationName[250:255]: BANKI,
-	_OperationName[255:260]: BATER,
+	_OperationName[0:4]:     NOOP,
+	_OperationName[4:8]:     MOVB,
+	_OperationName[8:12]:    MOVW,
+	_OperationName[12:16]:   INCB,
+	_OperationName[16:20]:   INCW,
+	_OperationName[20:24]:   DECB,
+	_OperationName[24:28]:   DECW,
+	_OperationName[28:32]:   PSHW,
+	_OperationName[32:36]:   POPW,
+	_OperationName[36:40]:   LITB,
+	_OperationName[40:44]:   LITW,
+	_OperationName[44:48]:   OUTB,
+	_OperationName[48:52]:   OUTW,
+	_OperationName[52:56]:   OUTA,
+	_OperationName[56:60]:   INPB,
+	_OperationName[60:64]:   INPW,
+	_OperationName[64:68]:   INPA,
+	_OperationName[68:72]:   ADDB,
+	_OperationName[72:76]:   ADDW,
+	_OperationName[76:80]:   SUBB,
+	_OperationName[80:84]:   SUBW,
+	_OperationName[84:88]:   ANDB,
+	_OperationName[88:92]:   ANDW,
+	_OperationName[92:96]:   BORB,
+	_OperationName[96:100]:  BORW,
+	_OperationName[100:104]: XORB,
+	_OperationName[104:108]: XORW,
+	_OperationName[108:112]: SHLB,
+	_OperationName[112:116]: SHLW,
+	_OperationName[116:120]: SHRB,
+	_OperationName[120:124]: SHRW,
+	_OperationName[124:128]: LAND,
+	_OperationName[128:132]: JUMP,
+	_OperationName[132:136]: JPIF,
+	_OperationName[136:140]: CMPB,
+	_OperationName[140:144]: DATS,
+	_OperationName[144:148]: IASM,
+	_OperationName[148:152]: VARA,
+	_OperationName[152:156]: GEAB,
+	_OperationName[156:160]: GEAW,
+	_OperationName[160:164]: STAB,
+	_OperationName[164:168]: STAW,
+	_OperationName[168:172]: STOB,
+	_OperationName[172:176]: STOW,
+	_OperationName[176:180]: STOT,
+	_OperationName[180:184]: LOAD,
+	_OperationName[184:188]: LOAB,
+	_OperationName[188:192]: LOAW,
+	_OperationName[192:196]: GETB,
+	_OperationName[196:200]: GETW,
+	_OperationName[200:204]: GETA,
+	_OperationName[204:208]: GETT,
+	_OperationName[208:212]: FUNC,
+	_OperationName[212:216]: CALL,
+	_OperationName[216:220]: RETU,
+	_OperationName[220:224]: RETI,
+	_OperationName[224:228]: RETN,
+	_OperationName[228:232]: SINT,
+	_OperationName[232:236]: SNMI,
+	_OperationName[236:240]: COPY,
+	_OperationName[240:244]: BANK,
+	_OperationName[244:248]: BATT,
 }
 
 // ParseOperation attempts to convert a string to a Operation.
@@ -337,5 +492,185 @@ func (x *Operation) UnmarshalText(text []byte) error {
 //
 // Implementations must not retain b, nor mutate any bytes within b[:len(b)].
 func (x *Operation) AppendText(b []byte) ([]byte, error) {
+	return append(b, x.String()...), nil
+}
+
+const (
+	// R1 is the virtual accumulator register
+	R1 Register = iota
+	// R2 is the virtual counter register
+	R2
+	// R3 is the virtual pointer register
+	R3
+	// R4 is the virtual backup register
+	R4
+)
+
+var ErrInvalidRegister = fmt.Errorf("not a valid Register, try [%s]", strings.Join(_RegisterNames, ", "))
+
+const _RegisterName = "R1R2R3R4"
+
+var _RegisterNames = []string{
+	_RegisterName[0:2],
+	_RegisterName[2:4],
+	_RegisterName[4:6],
+	_RegisterName[6:8],
+}
+
+// RegisterNames returns a list of possible string values of Register.
+func RegisterNames() []string {
+	tmp := make([]string, len(_RegisterNames))
+	copy(tmp, _RegisterNames)
+	return tmp
+}
+
+var _RegisterMap = map[Register]string{
+	R1: _RegisterName[0:2],
+	R2: _RegisterName[2:4],
+	R3: _RegisterName[4:6],
+	R4: _RegisterName[6:8],
+}
+
+// String implements the Stringer interface.
+func (x Register) String() string {
+	if str, ok := _RegisterMap[x]; ok {
+		return str
+	}
+	return fmt.Sprintf("Register(%d)", x)
+}
+
+// IsValid provides a quick way to determine if the typed value is
+// part of the allowed enumerated values
+func (x Register) IsValid() bool {
+	_, ok := _RegisterMap[x]
+	return ok
+}
+
+var _RegisterValue = map[string]Register{
+	_RegisterName[0:2]: R1,
+	_RegisterName[2:4]: R2,
+	_RegisterName[4:6]: R3,
+	_RegisterName[6:8]: R4,
+}
+
+// ParseRegister attempts to convert a string to a Register.
+func ParseRegister(name string) (Register, error) {
+	if x, ok := _RegisterValue[name]; ok {
+		return x, nil
+	}
+	return Register(0), fmt.Errorf("%s is %w", name, ErrInvalidRegister)
+}
+
+// MarshalText implements the text marshaller method.
+func (x Register) MarshalText() ([]byte, error) {
+	return []byte(x.String()), nil
+}
+
+// UnmarshalText implements the text unmarshaller method.
+func (x *Register) UnmarshalText(text []byte) error {
+	name := string(text)
+	tmp, err := ParseRegister(name)
+	if err != nil {
+		return err
+	}
+	*x = tmp
+	return nil
+}
+
+// AppendText appends the textual representation of itself to the end of b
+// (allocating a larger slice if necessary) and returns the updated slice.
+//
+// Implementations must not retain b, nor mutate any bytes within b[:len(b)].
+func (x *Register) AppendText(b []byte) ([]byte, error) {
+	return append(b, x.String()...), nil
+}
+
+const (
+	// T1 is one of four temporary virtual registers.
+	T1 Temporary = iota
+	// T2 is one of four temporary virtual registers.
+	T2
+	// R3 is one of four temporary virtual registers.
+	T3
+	// R4 is one of four temporary virtual registers.
+	T4
+)
+
+var ErrInvalidTemporary = fmt.Errorf("not a valid Temporary, try [%s]", strings.Join(_TemporaryNames, ", "))
+
+const _TemporaryName = "T1T2T3T4"
+
+var _TemporaryNames = []string{
+	_TemporaryName[0:2],
+	_TemporaryName[2:4],
+	_TemporaryName[4:6],
+	_TemporaryName[6:8],
+}
+
+// TemporaryNames returns a list of possible string values of Temporary.
+func TemporaryNames() []string {
+	tmp := make([]string, len(_TemporaryNames))
+	copy(tmp, _TemporaryNames)
+	return tmp
+}
+
+var _TemporaryMap = map[Temporary]string{
+	T1: _TemporaryName[0:2],
+	T2: _TemporaryName[2:4],
+	T3: _TemporaryName[4:6],
+	T4: _TemporaryName[6:8],
+}
+
+// String implements the Stringer interface.
+func (x Temporary) String() string {
+	if str, ok := _TemporaryMap[x]; ok {
+		return str
+	}
+	return fmt.Sprintf("Temporary(%d)", x)
+}
+
+// IsValid provides a quick way to determine if the typed value is
+// part of the allowed enumerated values
+func (x Temporary) IsValid() bool {
+	_, ok := _TemporaryMap[x]
+	return ok
+}
+
+var _TemporaryValue = map[string]Temporary{
+	_TemporaryName[0:2]: T1,
+	_TemporaryName[2:4]: T2,
+	_TemporaryName[4:6]: T3,
+	_TemporaryName[6:8]: T4,
+}
+
+// ParseTemporary attempts to convert a string to a Temporary.
+func ParseTemporary(name string) (Temporary, error) {
+	if x, ok := _TemporaryValue[name]; ok {
+		return x, nil
+	}
+	return Temporary(0), fmt.Errorf("%s is %w", name, ErrInvalidTemporary)
+}
+
+// MarshalText implements the text marshaller method.
+func (x Temporary) MarshalText() ([]byte, error) {
+	return []byte(x.String()), nil
+}
+
+// UnmarshalText implements the text unmarshaller method.
+func (x *Temporary) UnmarshalText(text []byte) error {
+	name := string(text)
+	tmp, err := ParseTemporary(name)
+	if err != nil {
+		return err
+	}
+	*x = tmp
+	return nil
+}
+
+// AppendText appends the textual representation of itself to the end of b
+// (allocating a larger slice if necessary) and returns the updated slice.
+//
+// Implementations must not retain b, nor mutate any bytes within b[:len(b)].
+func (x *Temporary) AppendText(b []byte) ([]byte, error) {
 	return append(b, x.String()...), nil
 }

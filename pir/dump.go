@@ -24,23 +24,31 @@ func (p Program) Dump(wr io.Writer) error {
 func (i Instruction) Dump(wr io.Writer) error {
 	fmt.Fprint(wr, i.Operation)
 
-	switch i.Operation.Operand() {
-	case OperandNone:
-		fmt.Fprintln(wr)
-	case OperandByte:
-		fmt.Fprintln(wr, " ", i.Byte)
-	case OperandWord:
-		fmt.Fprintln(wr, " ", i.Word)
-	case OperandInt:
-		fmt.Fprintln(wr, " ", i.Int)
-	case OperandIdent:
-		fmt.Fprintln(wr, " ", i.Ident)
+	ops := i.Operands
 
-	case OperandString:
-		fmt.Fprintln(wr, " ", strconv.QuoteToASCII(i.Str))
-	default:
-		return fmt.Errorf("unknown operand type for %s", i.String())
+	for _, op := range ops {
+		switch op.Kind {
+		case KindNone:
+			continue
+		case KindByte:
+			fmt.Fprint(wr, " ", op.Byte)
+		case KindWord:
+			fmt.Fprint(wr, " ", op.Word)
+		case KindInt:
+			fmt.Fprint(wr, " ", op.Int)
+		case KindIdent:
+			fmt.Fprint(wr, " ", op.Ident)
+		case KindRegister:
+			fmt.Fprint(wr, " ", op.Register)
+		case KindTemporary:
+			fmt.Fprint(wr, " ", op.Temporary)
+		case KindString:
+			fmt.Fprint(wr, " ", strconv.QuoteToASCII(op.Str))
+		default:
+			return fmt.Errorf("unknown operand type %d for %s", op.Kind, i.String())
+		}
 	}
+	fmt.Fprintln(wr)
 
 	return nil
 }
