@@ -30,11 +30,13 @@ const (
 	KindTemporary
 	// KindCondition is a Kind of type Condition.
 	KindCondition
+	// KindHalf is a Kind of type Half.
+	KindHalf
 )
 
 var ErrInvalidKind = errors.New("not a valid Kind")
 
-const _KindName = "NoneByteWordIntIdentStringRegisterTemporaryCondition"
+const _KindName = "NoneByteWordIntIdentStringRegisterTemporaryConditionHalf"
 
 var _KindMap = map[Kind]string{
 	KindNone:      _KindName[0:4],
@@ -46,6 +48,7 @@ var _KindMap = map[Kind]string{
 	KindRegister:  _KindName[26:34],
 	KindTemporary: _KindName[34:43],
 	KindCondition: _KindName[43:52],
+	KindHalf:      _KindName[52:56],
 }
 
 // String implements the Stringer interface.
@@ -73,6 +76,7 @@ var _KindValue = map[string]Kind{
 	_KindName[26:34]: KindRegister,
 	_KindName[34:43]: KindTemporary,
 	_KindName[43:52]: KindCondition,
+	_KindName[52:56]: KindHalf,
 }
 
 // ParseKind attempts to convert a string to a Kind.

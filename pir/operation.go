@@ -71,14 +71,6 @@ ENUM(
 */
 type Operation int
 
-func (o Operation) OperandKinds() []Kind {
-	switch o {
-
-	default:
-		return []Kind{}
-	}
-}
-
 /*
 ENUM(
 
@@ -90,6 +82,37 @@ ENUM(
 )
 */
 type Register int
+
+/*
+ENUM(
+
+	R1L // R1L is register R1 low half byte register
+	R1H // R1H is register R1 high half byte register
+	R2L // R2L is register R2 low half byte register
+	R2H // R2H is register R2 high half byte register
+	R3L // R3L is register R3 low half byte register
+	R3H // R3H is register R3 high half byte register
+	R4L // R4L is register R4 low half byte register
+	R4H // R4H is register R4 high half byte register
+
+)
+*/
+type Half int
+
+func (r Register) Halves() (lo, hi Half) {
+	switch r {
+	case R1:
+		return R1L, R1H
+	case R2:
+		return R2L, R2H
+	case R3:
+		return R3L, R3H
+	case R4:
+		return R4L, R4H
+	default:
+		panic("unknown register")
+	}
+}
 
 /*
 ENUM(
@@ -117,3 +140,135 @@ ENUM(
 )
 */
 type Condition int
+
+func (o Operation) Kinds() []Kind {
+	switch o {
+	case NOOP:
+		return []Kind{}
+	case MOVB:
+		return []Kind{KindHalf, KindHalf}
+	case MOVW:
+		return []Kind{KindRegister, KindRegister}
+	case INCB:
+		return []Kind{KindHalf}
+	case INCW:
+		return []Kind{KindRegister}
+	case DECB:
+		return []Kind{KindHalf}
+	case DECW:
+		return []Kind{KindRegister}
+	case PSHW:
+		return []Kind{KindRegister}
+	case POPW:
+		return []Kind{KindRegister}
+	case LITB:
+		return []Kind{KindByte, KindHalf}
+	case LITW:
+		return []Kind{KindWord, KindHalf}
+	case OUTB:
+		return []Kind{KindHalf, KindInt}
+	case OUTW:
+		return []Kind{KindRegister, KindInt}
+	case OUTA:
+		return []Kind{KindRegister, KindHalf, KindInt}
+	case INPB:
+		return []Kind{KindInt, KindHalf}
+	case INPW:
+		return []Kind{KindInt, KindRegister}
+	case INPA:
+		return []Kind{KindInt, KindHalf, KindRegister}
+	case ADDB:
+		return []Kind{KindHalf, KindHalf}
+	case ADDW:
+		return []Kind{KindRegister, KindRegister}
+	case SUBB:
+		return []Kind{KindHalf, KindHalf}
+	case SUBW:
+		return []Kind{KindRegister, KindRegister}
+	case ANDB:
+		return []Kind{KindHalf, KindHalf}
+	case ANDW:
+		return []Kind{KindRegister, KindRegister}
+	case BORB:
+		return []Kind{KindHalf, KindHalf}
+	case BORW:
+		return []Kind{KindRegister, KindRegister}
+	case XORB:
+		return []Kind{KindHalf, KindHalf}
+	case XORW:
+		return []Kind{KindRegister, KindRegister}
+	case SHLB:
+		return []Kind{KindInt, KindHalf}
+	case SHLW:
+		return []Kind{KindInt, KindRegister}
+	case SHRB:
+		return []Kind{KindInt, KindHalf}
+	case SHRW:
+		return []Kind{KindInt, KindRegister}
+	case LAND:
+		return []Kind{KindIdent}
+	case JUMP:
+		return []Kind{KindIdent}
+	case JPIF:
+		return []Kind{KindCondition, KindIdent}
+	case CMPB:
+		return []Kind{KindCondition, KindHalf}
+	case DATS:
+		return []Kind{KindIdent, KindString}
+	case IASM:
+		return []Kind{KindString}
+	case VARA:
+		return []Kind{KindIdent, KindInt}
+	case GEAB:
+		return []Kind{KindRegister, KindHalf}
+	case GEAW:
+		return []Kind{KindRegister, KindRegister}
+	case STAB:
+		return []Kind{KindHalf, KindRegister}
+	case STAW:
+		return []Kind{KindRegister, KindRegister}
+	case STOB:
+		return []Kind{KindHalf, KindIdent}
+	case STOW:
+		return []Kind{KindRegister, KindIdent}
+	case STOT:
+		return []Kind{KindRegister, KindTemporary}
+	case LOAD:
+		return []Kind{KindIdent, KindRegister}
+	case LOAB:
+		return []Kind{KindIdent, KindHalf}
+	case LOAW:
+		return []Kind{KindIdent, KindRegister}
+	case GETB:
+		return []Kind{KindIdent, KindHalf}
+	case GETW:
+		return []Kind{KindIdent, KindRegister}
+	case GETA:
+		return []Kind{KindIdent, KindRegister}
+	case GETT:
+		return []Kind{KindTemporary, KindRegister}
+	case FUNC:
+		return []Kind{KindIdent}
+	case CALL:
+		return []Kind{KindIdent}
+	case RETU:
+		return []Kind{}
+	case RETI:
+		return []Kind{}
+	case RETN:
+		return []Kind{}
+	case SINT:
+		return []Kind{KindIdent}
+	case SNMI:
+		return []Kind{KindIdent}
+	case COPY:
+		return []Kind{KindRegister, KindHalf, KindRegister}
+	case BANK:
+		return []Kind{KindInt}
+	case BATT:
+		return []Kind{KindIdent}
+	default:
+		return []Kind{}
+	}
+
+}

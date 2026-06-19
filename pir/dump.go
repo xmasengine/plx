@@ -24,7 +24,7 @@ func (p Program) Dump(wr io.Writer) error {
 func (i Instruction) Dump(wr io.Writer) error {
 	fmt.Fprint(wr, i.Operation)
 
-	ops := i.Operands
+	ops := i.Ops
 
 	for _, op := range ops {
 		switch op.Kind {

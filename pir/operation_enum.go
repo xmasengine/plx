@@ -116,6 +116,116 @@ func (x *Condition) AppendText(b []byte) ([]byte, error) {
 }
 
 const (
+	// R1L is register R1 low half byte register
+	R1L Half = iota
+	// R1H is register R1 high half byte register
+	R1H
+	// R2L is register R2 low half byte register
+	R2L
+	// R2H is register R2 high half byte register
+	R2H
+	// R3L is register R3 low half byte register
+	R3L
+	// R3H is register R3 high half byte register
+	R3H
+	// R4L is register R4 low half byte register
+	R4L
+	// R4H is register R4 high half byte register
+	R4H
+)
+
+var ErrInvalidHalf = fmt.Errorf("not a valid Half, try [%s]", strings.Join(_HalfNames, ", "))
+
+const _HalfName = "R1LR1HR2LR2HR3LR3HR4LR4H"
+
+var _HalfNames = []string{
+	_HalfName[0:3],
+	_HalfName[3:6],
+	_HalfName[6:9],
+	_HalfName[9:12],
+	_HalfName[12:15],
+	_HalfName[15:18],
+	_HalfName[18:21],
+	_HalfName[21:24],
+}
+
+// HalfNames returns a list of possible string values of Half.
+func HalfNames() []string {
+	tmp := make([]string, len(_HalfNames))
+	copy(tmp, _HalfNames)
+	return tmp
+}
+
+var _HalfMap = map[Half]string{
+	R1L: _HalfName[0:3],
+	R1H: _HalfName[3:6],
+	R2L: _HalfName[6:9],
+	R2H: _HalfName[9:12],
+	R3L: _HalfName[12:15],
+	R3H: _HalfName[15:18],
+	R4L: _HalfName[18:21],
+	R4H: _HalfName[21:24],
+}
+
+// String implements the Stringer interface.
+func (x Half) String() string {
+	if str, ok := _HalfMap[x]; ok {
+		return str
+	}
+	return fmt.Sprintf("Half(%d)", x)
+}
+
+// IsValid provides a quick way to determine if the typed value is
+// part of the allowed enumerated values
+func (x Half) IsValid() bool {
+	_, ok := _HalfMap[x]
+	return ok
+}
+
+var _HalfValue = map[string]Half{
+	_HalfName[0:3]:   R1L,
+	_HalfName[3:6]:   R1H,
+	_HalfName[6:9]:   R2L,
+	_HalfName[9:12]:  R2H,
+	_HalfName[12:15]: R3L,
+	_HalfName[15:18]: R3H,
+	_HalfName[18:21]: R4L,
+	_HalfName[21:24]: R4H,
+}
+
+// ParseHalf attempts to convert a string to a Half.
+func ParseHalf(name string) (Half, error) {
+	if x, ok := _HalfValue[name]; ok {
+		return x, nil
+	}
+	return Half(0), fmt.Errorf("%s is %w", name, ErrInvalidHalf)
+}
+
+// MarshalText implements the text marshaller method.
+func (x Half) MarshalText() ([]byte, error) {
+	return []byte(x.String()), nil
+}
+
+// UnmarshalText implements the text unmarshaller method.
+func (x *Half) UnmarshalText(text []byte) error {
+	name := string(text)
+	tmp, err := ParseHalf(name)
+	if err != nil {
+		return err
+	}
+	*x = tmp
+	return nil
+}
+
+// AppendText appends the textual representation of itself to the end of b
+// (allocating a larger slice if necessary) and returns the updated slice.
+//
+// Implementations must not retain b, nor mutate any bytes within b[:len(b)].
+func (x *Half) AppendText(b []byte) ([]byte, error) {
+	return append(b, x.String()...), nil
+}
+
+const (
 	// no operation
 	NOOP Operation = iota
 	// move register byte RnL -> RmL or RnH -> RmH

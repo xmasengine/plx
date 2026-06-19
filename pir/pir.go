@@ -77,7 +77,7 @@ const DONE Operation = -2
 // Instructions consist of an opcode and two mandatory operands.
 type Instruction struct {
 	Operation // Operation
-	Operands  []Operand
+	Ops       []Operand
 }
 
 // Program is a list of instructions

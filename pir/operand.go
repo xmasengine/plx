@@ -14,6 +14,7 @@ String
 Register
 Temporary
 Condition
+Half
 )
 */
 type Kind int
@@ -28,4 +29,5 @@ type Operand struct {
 	Register  Register  // Filled in for KindRegister
 	Temporary Temporary // Filled in for KindTemporary
 	Condition Condition // Filled in for KindCondition
+	Half      Half      // Filled in for KindHalf
 }

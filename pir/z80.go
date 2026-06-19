@@ -26,6 +26,13 @@ The BC register is free for other uses.
 
 */
 
+func MakeZ80(out io.Writer, pl plat.Platform) Z80 {
+	info := pl.Info()
+	z80 := Z80{Emitter: Emitter{out: out}, Platform: pl}
+	z80.lastVar = info.RAM + 10 // 4 temporaries and a pseudoregister.
+	return z80
+}
+
 func ParseFileZ80(name string, pl plat.Platform) (*bytes.Buffer, error) {
 	pir, err := ParseFilePIR(name)
 	if err != nil {
@@ -36,7 +43,7 @@ func ParseFileZ80(name string, pl plat.Platform) (*bytes.Buffer, error) {
 
 func (p Program) EmitZ80(pl plat.Platform) (*bytes.Buffer, error) {
 	buf := &bytes.Buffer{}
-	z80 := Z80{Emitter: Emitter{out: buf}, Platform: pl}
+	z80 := MakeZ80(buf, pl)
 	err := z80.EmitProgram(p)
 	if err != nil {
 		return nil, err
@@ -80,6 +87,7 @@ type Z80 struct {
 	plat.Platform
 	lastName  string
 	lastLabel int
+	lastVar   uint16
 }
 
 const z80Header = `
@@ -111,9 +119,28 @@ main:
     ld sp, %#x
 `
 
+const z80Footer = `
+// RAM
+org %#x
+// Pseudoregisters
+R4:
+R4L:db 0
+R4H:db 0
+// Temporaries
+T1: dw 0
+T2: dw 0
+T3: dw 0
+T4: dw 0
+`
+
 func (z *Z80) emitHeader() error {
 	info := z.Platform.Info()
 	return z.Emitf(z80Header, info.BankSize, info.INT, info.NMI, info.Stack)
+}
+
+func (z *Z80) emitFooter() error {
+	info := z.Platform.Info()
+	return z.Emitf(z80Footer, info.RAM)
 }
 
 func (z *Z80) EmitProgram(p Program) error {
@@ -124,6 +151,7 @@ func (z *Z80) EmitProgram(p Program) error {
 			return err
 		}
 	}
+	z.emitFooter()
 	return nil
 }
 
@@ -330,98 +358,285 @@ func (z *Z80) label() string {
 	return fmt.Sprintf("pl_%d", z.lastLabel)
 }
 
-func (z *Z80) push() error {
+func (z *Z80) push() {
 	z.Emitf("push de")
 	z.Emitf("ex de, hl")
-	return nil
 }
 
-func (z *Z80) pop() error {
+func (z *Z80) pop() {
 	z.Emitf("ex de,hl")
 	z.Emitf("pop de")
-	return nil
+}
+
+func (z *Z80) t(t Temporary) string {
+	switch t {
+	case T1:
+		return "T1"
+	case T2:
+		return "T2"
+	case T3:
+		return "T3"
+	case T4:
+		return "T4"
+	default:
+		panic("Unknown register")
+	}
+}
+
+func (z *Z80) to(o Operand) string {
+	if o.Kind != KindTemporary {
+		panic("Temporary expected as operand")
+	}
+	return z.t(o.Temporary)
+}
+
+func (z *Z80) r(t Register) string {
+	switch t {
+	case R1:
+		return "HL"
+	case R2:
+		return "DE"
+	case R3:
+		return "BC"
+	case R4:
+		return "(R4)"
+	default:
+		panic("Unknown register")
+	}
+}
+
+func (z *Z80) ro(o Operand) string {
+	if o.Kind != KindRegister {
+		panic("Register expected as operand")
+	}
+	return z.r(o.Register)
+}
+
+func (z *Z80) h(h Half) string {
+	switch h {
+	case R1L:
+		return "L"
+	case R1H:
+		return "H"
+	case R2L:
+		return "D"
+	case R2H:
+		return "E"
+	case R3L:
+		return "B"
+	case R3H:
+		return "C"
+	case R4L:
+		return "(R4L)"
+	case R4H:
+		return "(R4H)"
+	default:
+		panic("Unknown register")
+	}
+}
+
+func (z *Z80) ho(o Operand) string {
+	if o.Kind != KindHalf {
+		panic("Half expected as operand")
+	}
+	return z.h(o.Half)
 }
 
 // no operation
 func (z *Z80) emitNOOP(i Instruction) {}
 
 // move register byte RnL -> RmL or RnH -> RmH
-func (z *Z80) emitMOVB(i Instruction) {}
+func (z *Z80) emitMOVB(i Instruction) { z.Emitf("ld %s, %s", z.ho(i.Ops[1]), z.ho(i.Ops[0])) }
 
 // move register word RnL -> RmL or RnH -> RmH
-func (z *Z80) emitMOVW(i Instruction) {}
+func (z *Z80) emitMOVW(i Instruction) { z.Emitf("ld %s, %s", z.ro(i.Ops[1]), z.ro(i.Ops[0])) }
 
 // increment register byte
-func (z *Z80) emitINCB(i Instruction) {}
+func (z *Z80) emitINCB(i Instruction) { z.Emitf("inc %s", z.ho(i.Ops[0])) }
 
 // increment register word
-func (z *Z80) emitINCW(i Instruction) {}
+func (z *Z80) emitINCW(i Instruction) { z.Emitf("inc %s", z.ro(i.Ops[0])) }
 
 // decrement register byte
-func (z *Z80) emitDECB(i Instruction) {}
+func (z *Z80) emitDECB(i Instruction) { z.Emitf("dec %s", z.ho(i.Ops[0])) }
 
 // decrement register word
-func (z *Z80) emitDECW(i Instruction) {}
+func (z *Z80) emitDECW(i Instruction) { z.Emitf("dec %s", z.ro(i.Ops[0])) }
 
 // push register word to data stack
-func (z *Z80) emitPSHW(i Instruction) {}
+func (z *Z80) emitPSHW(i Instruction) { z.Emitf("push %s", z.ro(i.Ops[0])) }
 
 // pop data stack word to register (there is no byte variant)
-func (z *Z80) emitPOPW(i Instruction) {}
+func (z *Z80) emitPOPW(i Instruction) { z.Emitf("pop %s", z.ro(i.Ops[0])) }
 
 // Store literal byte in register RnL or RnH
-func (z *Z80) emitLITB(i Instruction) {}
+func (z *Z80) emitLITB(i Instruction) { z.Emitf("ld %s, %d", z.ho(i.Ops[1]), i.Ops[0].Byte) }
 
 // Store literal word in register RnL
-func (z *Z80) emitLITW(i Instruction) {}
+func (z *Z80) emitLITW(i Instruction) { z.Emitf("ld %s, %#x", z.ho(i.Ops[1]), i.Ops[0].Word) }
 
 // Output register byte to port [int] (constant literal).
-func (z *Z80) emitOUTB(i Instruction) {}
+func (z *Z80) emitOUTB(i Instruction) {
+	lo := i.Ops[0].Half
+	z.Emitf("ld a, %s", z.h(lo))
+	z.Emitf("out (%#x), a", i.Ops[1].Int)
+}
 
 // Output register word to port [int] (constant literal).
-func (z *Z80) emitOUTW(i Instruction) {}
+func (z *Z80) emitOUTW(i Instruction) {
+	lo, hi := i.Ops[0].Register.Halves()
+	z.Emitf("ld a, %s", z.h(lo))
+	z.Emitf("out (%#x), a", i.Ops[1].Int)
+	z.Emitf("ld a, %s", z.h(hi))
+	z.Emitf("out (%#x), a", i.Ops[1].Int)
+}
 
 // Output R1 must have the address, R2 the length, output to port [int]
-func (z *Z80) emitOUTA(i Instruction) {}
+func (z *Z80) emitOUTA(i Instruction) {
+	addr := z.r(i.Ops[0].Register)
+	if addr != "HL" {
+		z.Emitf("ld hl, %s", addr)
+	}
+
+	count := z.h(i.Ops[1].Half)
+	if count != "b" {
+		z.Emitf("ld b, %s", count)
+	}
+	z.Emitf("ld c, %#x", i.Ops[2].Int)
+	z.Emitf("otir")
+}
 
 // Input byte from port [int] to register.
-func (z *Z80) emitINPB(i Instruction) {}
+func (z *Z80) emitINPB(i Instruction) {
+	z.Emitf("in %s,(%x)", z.ho(i.Ops[1]), i.Ops[0].Int)
+}
 
 // Input word from port [int] to register.
-func (z *Z80) emitINPW(i Instruction) {}
+func (z *Z80) emitINPW(i Instruction) {
+	lo, hi := i.Ops[1].Register.Halves()
+	z.Emitf("in %s,(%x)", z.h(lo), i.Ops[0].Int)
+	z.Emitf("in %s,(%x)", z.h(hi), i.Ops[0].Int)
+}
 
 // Output R1 must have the address, R2 the length, input from port [int]
-func (z *Z80) emitINPA(i Instruction) {}
+func (z *Z80) emitINPA(i Instruction) {
+	addr := z.r(i.Ops[2].Register)
+	if addr != "HL" {
+		z.Emitf("ld hl, %s", addr)
+	}
 
-// Add byte Rn to Rm and store in Rm
-func (z *Z80) emitADDB(i Instruction) {}
+	count := z.h(i.Ops[1].Half)
+	if count != "b" {
+		z.Emitf("ld b, %s", count)
+	}
+	z.Emitf("ld c, %#x", i.Ops[0].Int)
+	z.Emitf("inir")
+}
+
+// Add byte Rn to Rm and store in Rm.
+func (z *Z80) emitADDB(i Instruction) {
+	z.Emitf("ld a, %s", z.ho(i.Ops[0]))
+	z.Emitf("add %s", z.ho(i.Ops[1]))
+	z.Emitf("ld %s,a", z.ho(i.Ops[1]))
+}
 
 // Add word Rn to Rm and store in Rm
-func (z *Z80) emitADDW(i Instruction) {}
+func (z *Z80) emitADDW(i Instruction) {
+	lo0, hi0 := i.Ops[0].Register.Halves()
+	lo1, hi1 := i.Ops[1].Register.Halves()
+
+	z.Emitf("ld a, %s", z.h(lo0))
+	z.Emitf("add %s", z.h(lo1))
+	z.Emitf("ld %s,a", z.h(lo1))
+
+	z.Emitf("ld a, %s", z.h(hi0))
+	z.Emitf("adc %s", z.h(hi1))
+	z.Emitf("ld %s,a", z.h(hi1))
+}
 
 // Subtract byte Rn from Rm and store in Rm
-func (z *Z80) emitSUBB(i Instruction) {}
+func (z *Z80) emitSUBB(i Instruction) {
+	z.Emitf("ld a, %s", z.ho(i.Ops[0]))
+	z.Emitf("sub %s", z.ho(i.Ops[1]))
+	z.Emitf("ld %s,a", z.ho(i.Ops[1]))
+}
 
 // Subtract word Rn from Rm and store in Rm
-func (z *Z80) emitSUBW(i Instruction) {}
+func (z *Z80) emitSUBW(i Instruction) {
+	lo0, hi0 := i.Ops[0].Register.Halves()
+	lo1, hi1 := i.Ops[1].Register.Halves()
+
+	z.Emitf("ld a, %s", z.h(hi0))
+	z.Emitf("sub %s", z.h(hi1))
+	z.Emitf("ld %s,a", z.h(hi1))
+
+	z.Emitf("ld a, %s", z.h(lo0))
+	z.Emitf("sbb %s", z.h(lo1))
+	z.Emitf("ld %s,a", z.h(lo1))
+}
 
 // AND byte Rn with Rm and store in Rm
-func (z *Z80) emitANDB(i Instruction) {}
+func (z *Z80) emitANDB(i Instruction) {
+	z.Emitf("ld a, %s", z.ho(i.Ops[0]))
+	z.Emitf("and %s", z.ho(i.Ops[1]))
+	z.Emitf("ld %s,a", z.ho(i.Ops[1]))
+}
 
 // AND word Rn with Rm and store in Rm
-func (z *Z80) emitANDW(i Instruction) {}
+func (z *Z80) emitANDW(i Instruction) {
+	lo0, hi0 := i.Ops[0].Register.Halves()
+	lo1, hi1 := i.Ops[1].Register.Halves()
+
+	z.Emitf("ld a, %s", z.h(lo0))
+	z.Emitf("and %s", z.h(lo1))
+	z.Emitf("ld %s,a", z.h(lo1))
+
+	z.Emitf("ld a, %s", z.h(hi0))
+	z.Emitf("and %s", z.h(hi1))
+	z.Emitf("ld %s,a", z.h(hi1))
+}
 
 // Binary OR byte Rn with Rm and store in Rm
-func (z *Z80) emitBORB(i Instruction) {}
+func (z *Z80) emitBORB(i Instruction) {
+	z.Emitf("ld a, %s", z.ho(i.Ops[0]))
+	z.Emitf("or %s", z.ho(i.Ops[1]))
+	z.Emitf("ld %s,a", z.ho(i.Ops[1]))
+}
 
 // Binary OR word Rn with Rm and store in Rm
-func (z *Z80) emitBORW(i Instruction) {}
+func (z *Z80) emitBORW(i Instruction) {
+	lo0, hi0 := i.Ops[0].Register.Halves()
+	lo1, hi1 := i.Ops[1].Register.Halves()
+
+	z.Emitf("ld a, %s", z.h(lo0))
+	z.Emitf("or %s", z.h(lo1))
+	z.Emitf("ld %s,a", z.h(lo1))
+
+	z.Emitf("ld a, %s", z.h(hi0))
+	z.Emitf("or %s", z.h(hi1))
+	z.Emitf("ld %s,a", z.h(hi1))
+}
 
 // Binary XOR byte Rn with Rm and store in Rm
-func (z *Z80) emitXORB(i Instruction) {}
+func (z *Z80) emitXORB(i Instruction) {
+	z.Emitf("ld a, %s", z.ho(i.Ops[0]))
+	z.Emitf("xor %s", z.ho(i.Ops[1]))
+	z.Emitf("ld %s,a", z.ho(i.Ops[1]))
+}
 
 // Binary XOR word Rn with Rm and store in Rm
-func (z *Z80) emitXORW(i Instruction) {}
+func (z *Z80) emitXORW(i Instruction) {
+	lo0, hi0 := i.Ops[0].Register.Halves()
+	lo1, hi1 := i.Ops[1].Register.Halves()
+
+	z.Emitf("ld a, %s", z.h(lo0))
+	z.Emitf("xor %s", z.h(lo1))
+	z.Emitf("ld %s,a", z.h(lo1))
+
+	z.Emitf("ld a, %s", z.h(hi0))
+	z.Emitf("xor %s", z.h(hi1))
+	z.Emitf("ld %s,a", z.h(hi1))
+}
 
 // Shift left by Int to byte register.
 func (z *Z80) emitSHLB(i Instruction) {}
@@ -436,13 +651,19 @@ func (z *Z80) emitSHRB(i Instruction) {}
 func (z *Z80) emitSHRW(i Instruction) {}
 
 // Define jump location where the jump may "land" [ident].
-func (z *Z80) emitLAND(i Instruction) {}
+func (z *Z80) emitLAND(i Instruction) {
+	z.Emitf("%s:", i.Ops[0].Ident)
+}
 
 // Jump to tag [ident] unconditionally.
-func (z *Z80) emitJUMP(i Instruction) {}
+func (z *Z80) emitJUMP(i Instruction) {
+	z.Emitf("jmp %s", i.Ops[0].Ident)
+}
 
 // Jump on [cond] to tag [ident] it TOS is TRUE, pop stack.
-func (z *Z80) emitJPIF(i Instruction) {}
+func (z *Z80) emitJPIF(i Instruction) {
+	z.Emitf("jmp %s,%s:", i.Ops[0].Condition, i.Ops[1].Ident)
+}
 
 // Ident is one of [eq, gt, lt, etc], compare register with R1L and store in R1L.
 func (z *Z80) emitCMPB(i Instruction) {}

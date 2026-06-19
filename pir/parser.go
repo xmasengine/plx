@@ -103,7 +103,7 @@ func (ins *Instruction) scan(scan *scanner.Scanner) error {
 		return scanError(scan, err.Error(), tok)
 	}
 
-	kinds := ins.Operation.OperandKinds()
+	kinds := ins.Operation.Kinds()
 	for _, kind := range kinds {
 		op := Operand{}
 		switch kind {
@@ -182,6 +182,15 @@ func (ins *Instruction) scan(scan *scanner.Scanner) error {
 			if err != nil {
 				return err
 			}
+		case KindHalf:
+			_, text, err := accept(scan, scanner.Ident)
+			if err != nil {
+				return err
+			}
+			err = op.Half.UnmarshalText([]byte(text))
+			if err != nil {
+				return err
+			}
 
 		case KindString:
 			tok, text, err := accept(scan, scanner.String, scanner.RawString)
@@ -197,7 +206,7 @@ func (ins *Instruction) scan(scan *scanner.Scanner) error {
 		default:
 			return fmt.Errorf("%s:%s", scan.Position, "unknown operand type")
 		}
-		ins.Operands = append(ins.Operands, op)
+		ins.Ops = append(ins.Ops, op)
 	}
 	_, _, err = accept(scan, ';', '\n')
 
